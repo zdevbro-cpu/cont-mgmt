@@ -1,73 +1,92 @@
-import { useNavigate, useLocation } from 'react-router-dom';
-import { FileText, DollarSign } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { LogOut, Settings, Users, FileText } from 'lucide-react';
 
 export default function Navigation() {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { user, userRole, signOut } = useAuth();
 
-  const isActive = (path) => {
-    return location.pathname.startsWith(path);
+  const handleLogout = async () => {
+    if (confirm('로그아웃 하시겠습니까?')) {
+      try {
+        await signOut();
+        navigate('/login');
+      } catch (error) {
+        console.error('로그아웃 오류:', error);
+        alert('로그아웃에 실패했습니다.');
+      }
+    }
   };
 
-  const menuItems = [
-    {
-      path: '/contracts',
-      label: '계약 관리',
-      icon: FileText
-    },
-    {
-      path: '/payments',
-      label: '지급 관리',
-      icon: DollarSign
-    }
-  ];
-
   return (
-    <div className="bg-white shadow-md">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between px-6 py-4">
+    <nav className="bg-white border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           {/* 로고 */}
-          <div 
-            className="flex items-center gap-2 cursor-pointer"
-            onClick={() => navigate('/')}
-          >
-            <img 
-              src="/images/logo.png" 
-              alt="Logo" 
-              className="h-10"
-              onError={(e) => e.target.style.display = 'none'}
-            />
-            <h1 className="font-bold" style={{ color: '#249689', fontSize: '36px' }}>
-              계약서 등록
-            </h1>
-          </div>
+          <Link to="/contracts" className="flex items-center gap-3">
+            <img src="/images/logo.png" alt="Logo" className="h-10" />
+            <span className="font-bold" style={{ color: '#249689', fontSize: '24px' }}>
+              계약관리시스템
+            </span>
+          </Link>
 
           {/* 메뉴 */}
-          <nav className="flex gap-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-              
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className="flex items-center gap-2 px-6 py-3 font-bold rounded-lg transition-all"
-                  style={{
-                    backgroundColor: active ? '#249689' : '#ffffff',
-                    color: active ? '#ffffff' : '#6b7280',
-                    fontSize: '15px',
-                    border: active ? 'none' : '2px solid #e5e7eb'
-                  }}
+          <div className="flex items-center gap-4">
+            {/* 계약서 관리 */}
+            <Link
+              to="/contracts"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+              style={{ fontSize: '15px', color: '#000000' }}
+            >
+              <FileText size={18} style={{ color: '#249689' }} />
+              계약서 관리
+            </Link>
+
+            {/* 지급 관리 */}
+            <Link
+              to="/payments"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+              style={{ fontSize: '15px', color: '#000000' }}
+            >
+              <FileText size={18} style={{ color: '#249689' }} />
+              지급 관리
+            </Link>
+
+            {/* 관리자 메뉴 */}
+            {userRole === 'admin' && (
+              <>
+                <Link
+                  to="/admin/contract-types"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  style={{ fontSize: '15px', color: '#000000' }}
                 >
-                  <Icon size={18} />
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
+                  <Settings size={18} style={{ color: '#249689' }} />
+                  계약종류 관리
+                </Link>
+
+                <Link
+                  to="/admin/users"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  style={{ fontSize: '15px', color: '#000000' }}
+                >
+                  <Users size={18} style={{ color: '#249689' }} />
+                  유저 관리
+                </Link>
+              </>
+            )}
+
+            {/* 로그아웃 */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+              style={{ fontSize: '15px', color: '#000000' }}
+            >
+              <LogOut size={18} style={{ color: '#ef4444' }} />
+              로그아웃
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </nav>
   );
 }

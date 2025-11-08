@@ -1,7 +1,9 @@
+import Tesseract from 'tesseract.js';
 import { createRequire } from 'module';
 import fs from 'fs';
+
 const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
+const pdf = require('pdf-parse');
 
 /**
  * PDF를 텍스트로 변환 (pdf-parse 사용)
@@ -9,7 +11,7 @@ const pdfParse = require('pdf-parse');
 const extractTextFromPDF = async (pdfPath) => {
   try {
     const dataBuffer = fs.readFileSync(pdfPath);
-    const data = await pdfParse(dataBuffer);
+    const data = await pdf(dataBuffer);
     return data.text;
   } catch (error) {
     console.error('PDF 텍스트 추출 오류:', error);

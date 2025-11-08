@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, FileText } from 'lucide-react';
+import { Plus, Eye, Trash2, FileText } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import ContractFilters from '../../components/contracts/ContractFilters.component';
 import Navigation from '../../components/Navigation.component';
 
 export default function ContractListPage() {
   const navigate = useNavigate();
+  const { userRole } = useAuth();
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
@@ -73,7 +75,7 @@ export default function ContractListPage() {
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
-    setPagination(prev => ({ ...prev, page: 1 })); // 필터 변경 시 1페이지로
+    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const handleFilterReset = () => {
@@ -88,6 +90,32 @@ export default function ContractListPage() {
       sortOrder: 'desc'
     });
     setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleDelete = async (contract, event) => {
+    event.stopPropagation(); // 행 클릭 이벤트 방지
+    
+    if (!confirm(`"${contract.contract_name}" 계약을 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/contracts/${contract.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '삭제 실패');
+      }
+
+      alert('계약이 삭제되었습니다.');
+      loadContracts();
+
+    } catch (error) {
+      console.error('삭제 오류:', error);
+      alert(error.message || '삭제하는데 실패했습니다.');
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -197,7 +225,10 @@ export default function ContractListPage() {
                 </thead>
                 <tbody>
                   {contracts.map((contract) => (
-                    <tr key={contract.id} className="border-t hover:bg-gray-50">
+                    <tr 
+                      key={contract.id} 
+                      className="border-t hover:bg-gray-50"
+                    >
                       <td className="px-4 py-3" style={{ fontSize: '15px', color: '#249689', fontWeight: 'bold' }}>
                         {contract.contract_number}
                       </td>
@@ -217,7 +248,7 @@ export default function ContractListPage() {
                         {formatDate(contract.contract_date)}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-center">
+                        <div className="flex justify-center gap-1">
                           <button
                             onClick={() => navigate(`/contracts/${contract.id}`)}
                             className="p-2 hover:bg-gray-100 rounded"
@@ -225,6 +256,15 @@ export default function ContractListPage() {
                           >
                             <Eye size={18} style={{ color: '#249689' }} />
                           </button>
+                          {userRole === 'admin' && (
+                            <button
+                              onClick={(e) => handleDelete(contract, e)}
+                              className="p-2 hover:bg-gray-100 rounded"
+                              title="삭제"
+                            >
+                              <Trash2 size={18} style={{ color: '#ef4444' }} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

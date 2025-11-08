@@ -6,8 +6,10 @@ import { createClient } from '@supabase/supabase-js';
 
 // 라우트 import
 import authRoutes from './routes/auth.route.js';
-import contractsRoutes from './routes/contract.route.js';
-import paymentRoutes from './routes/payment.route.js'; // ← 추가
+import contractsRoutes from './routes/contracts.route.js'; 
+import paymentRoutes from './routes/payment.route.js';
+import contractTypesRoutes from './routes/contract-types.route.js';
+import usersRoutes from './routes/users.route.js';
 
 dotenv.config();
 
@@ -16,11 +18,13 @@ const app = express();
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:5173',
+  origin: 'http://localhost:5173',
   credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/api/contract-types', contractTypesRoutes);
+app.use('/api/users', usersRoutes);
 
 // Supabase 클라이언트를 req에 추가
 app.use((req, res, next) => {
@@ -39,8 +43,9 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       auth: '/api/auth',
-      contracts: '/api/contracts',
-      payments: '/api/payments' // ← 추가
+      payments: '/api/payments',
+      contractTypes: '/api/contract-types',
+      users: '/api/users'
     }
   });
 });
@@ -52,8 +57,8 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/contracts', contractsRoutes);
-app.use('/api/payments', paymentRoutes); // ← 추가
+app.use('/api/contracts', contractsRoutes); 
+app.use('/api/payments', paymentRoutes);
 // app.use('/api/schedule', scheduleRoutes);  // 필요시 추가
 // app.use('/api/admin', adminRoutes);        // 필요시 추가
 
