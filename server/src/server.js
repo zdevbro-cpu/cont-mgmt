@@ -10,10 +10,13 @@ import contractsRoutes from './routes/contracts.route.js';
 import paymentRoutes from './routes/payment.route.js';
 import contractTypesRoutes from './routes/contract-types.route.js';
 import usersRoutes from './routes/users.route.js';
+import contractTemplatesRouter from './routes/contract-templates.route.js';
 
 dotenv.config();
 
 const app = express();
+
+
 
 // Middleware
 app.use(helmet());
@@ -25,6 +28,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/contract-types', contractTypesRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/contract-templates', contractTemplatesRouter);
+
 
 // Supabase 클라이언트를 req에 추가
 app.use((req, res, next) => {

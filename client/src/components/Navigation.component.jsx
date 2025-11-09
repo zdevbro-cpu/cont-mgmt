@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, Settings, Users, FileText } from 'lucide-react';
+import { LogOut, Settings, Users, FileText, Layout } from 'lucide-react';
 
 export default function Navigation() {
   const navigate = useNavigate();
@@ -62,6 +62,15 @@ export default function Navigation() {
                 >
                   <Settings size={18} style={{ color: '#249689' }} />
                   계약종류 관리
+                </Link>
+
+                <Link
+                  to="/admin/templates"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  style={{ fontSize: '15px', color: '#000000' }}
+                >
+                  <Layout size={18} style={{ color: '#249689' }} />
+                  템플릿 관리
                 </Link>
 
                 <Link

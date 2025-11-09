@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "contract-mgmt",
+  "private_key_id": "5f53796b3eef10f3821d3575427a7fc4c8789dc2",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCTKgpggfkK3Zv/\naX+o0cxA7qIu8lZ7sEirqvFmzmW8D8b494BakwamALFxfi927cRwkun/oqaZAIx8\nWKAofNQqNczpNXQ4KLpBU38HtmkoxYsKt22KoJAO5EFwueH94GjCLomInwGfiDgJ\n0jVKp7kM+QHWrZez3MERekHmm+SMVEDiguNkhJTs/2HU+EyI/jbqEKYVUdYOPuDe\ncagBO7V1az3amsYF2U9kozGcUF9SytCGsy/ifAMHm1wP39ST4ccp3mnDDFfXDL7B\n29zIpXFdvCI8QD7wlwTE6YnRizwUV2/7GWld0/vpXyDHvqfIBO/HYzEaLmtswluS\nXlY+Px2pAgMBAAECggEAJABzKPBq/VhBF08XGrT2f8URWqRQ+XHjGVIYu+KO217N\nua8M0LuqsvY08rOgx3q75aFfSvlewcvzUmE5DyaYndnrDvtTewClriEP0NJ0b/PB\nw+WjT/hfPbFj/ACRc5MQdb6+STTDCCTiNq7c+C5HdE+/fiYaGHePKOgsko69LwH3\nmbRaWzp7cnHhG/1Lg8a3XVoMjRsShHcsH/ktvZxJD439Ed8mXGr0zhd57gyXwEOF\nYU3FIGZal5w3V449dI1N9ADETs9wYi58YTbVASY4SYn2RHbL94gT57uDDPmYCDx3\nOZVO89ypJXRUKEpZ8OtRCUwqzYqV+XqXqLbVoLD//QKBgQDIB5BmposJgqHf6SxR\nqGth0pxIJaX/8zY1le4mEhVAz0e0QZfNEeJXtr5q8R2vdmHfcM5/T9XYgdNdGp95\nAxY1VQiaGplgQTxVkxi26iyi0e9zODiEpkzlJPJQCBWP6WQwEbXxCzO+i20XIPgL\n00b2BYU7kc2lAMfadWFh+rqClQKBgQC8V6YSGmJb9z1cRbG+4QBBEMYLmSiI/q1H\nWHG5etgHifOkO8FGdQ800T6q7uAHADt03+OzbJ6Gn2VXtkVgD0rH+87TEd2IraS3\nH7nGjnGxw84PWABT9FQrAS4YzXwv5JMD59z2+g6yjqh8iM8brJ0VajQFdvvA7Iva\nRhmdMIbdxQKBgQC0W72kEP7EsHjsv/4qEsXgClrH4spuogl6/5kf0qY/LablrU8G\npN2FYU0IeCfgEcnmAnzu5jlXYpgGFv87ycC4jdeXu+wXkjqonl1mcHeWx9wz87li\nQeCLrGigKOnoPPUNMqrukL8zS9wtQpjlcLdHFWswbyMRaEbLf5MzGTQakQKBgHKK\nG0UHJqonQfnLqL0cuLrZKJgFHNGzkE3DS+Yw/xAWpUVL0c63gfftCN+LRlL7oS0C\nu8dyVzYn2cnt32L76c6VJMLYKpHkiDeV47UNC7fADKDoM8ra3BULMq2CyfOWXpIR\ngB/zEt0kRPL3gHykDSPo4powMgqx0Jt95jXiPSLBAoGASvaWp6p1UJMqntzDWKRB\nhW/YvYJPh1l4HRQKIz0/BA0PmjopROC8LhfVGamQT/wIkIYojzC7nakoov9nAjzQ\nTRdrIt81hLSvrWlrA0jgkt8wRGkR6l/eYVvkdecCJWb32/scMeJ0dLxYKasCBhmN\nItJ/+XxshIYSzofr/BJM9vs=\n-----END PRIVATE KEY-----\n",
+  "client_email": "contractor-ocr@contract-mgmt.iam.gserviceaccount.com",
+  "client_id": "102479690648969668015",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/contractor-ocr%40contract-mgmt.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
