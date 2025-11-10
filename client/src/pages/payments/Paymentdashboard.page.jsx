@@ -40,7 +40,6 @@ export default function PaymentDashboardPage() {
       });
 
     } catch (error) {
-      console.error('지급 목록 조회 오류:', error);
       alert('지급 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -66,7 +65,6 @@ export default function PaymentDashboardPage() {
       loadPayments();
 
     } catch (error) {
-      console.error('상태 변경 오류:', error);
       alert('상태 변경에 실패했습니다.');
     }
   };
@@ -99,7 +97,6 @@ export default function PaymentDashboardPage() {
       XLSX.writeFile(wb, `지급목록_${today}.xlsx`);
 
     } catch (error) {
-      console.error('엑셀 다운로드 오류:', error);
       alert('엑셀 다운로드에 실패했습니다.');
     }
   };
