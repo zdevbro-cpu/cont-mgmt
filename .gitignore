@@ -59,3 +59,4 @@ Thumbs.db
 
 # Google Cloud Key
 server/google-vision-key.json
+.vercel
