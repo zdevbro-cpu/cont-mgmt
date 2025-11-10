@@ -12,16 +12,16 @@ export default function ContractUpload({ onComplete }) {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
-    // 파일 타입 검증
+    // ?�일 ?�??검�?
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
     if (!allowedTypes.includes(selectedFile.type)) {
-      setError('PDF, JPG, PNG 파일만 업로드 가능합니다.');
+      setError('PDF, JPG, PNG ?�일�??�로??가?�합?�다.');
       return;
     }
 
-    // 파일 크기 검증 (10MB)
+    // ?�일 ?�기 검�?(10MB)
     if (selectedFile.size > 10 * 1024 * 1024) {
-      setError('파일 크기는 10MB 이하여야 합니다.');
+      setError('?�일 ?�기??10MB ?�하?�야 ?�니??');
       return;
     }
 
@@ -38,9 +38,9 @@ export default function ContractUpload({ onComplete }) {
     formData.append('file', fileToAnalyze);
 
     try {
-      const response = await fetch('http://localhost:5000/api/contracts/analyze', {
+      const response = await fetch('${import.meta.env.VITE_API_URL}/api/contracts/analyze', {
         method: 'POST',
-        // 임시: 인증 헤더 제거
+        // ?�시: ?�증 ?�더 ?�거
         // headers: {
         //   'Authorization': `Bearer ${localStorage.getItem('token')}`
         // },
@@ -48,15 +48,15 @@ export default function ContractUpload({ onComplete }) {
       });
 
       if (!response.ok) {
-        throw new Error('계약서 분석에 실패했습니다.');
+        throw new Error('계약??분석???�패?�습?�다.');
       }
 
       const data = await response.json();
       setResult(data);
 
     } catch (err) {
-      setError(err.message || '분석 중 오류가 발생했습니다.');
-      console.error('분석 오류:', err);
+      setError(err.message || '분석 �??�류가 발생?�습?�다.');
+      console.error('분석 ?�류:', err);
     } finally {
       setAnalyzing(false);
     }
@@ -64,7 +64,7 @@ export default function ContractUpload({ onComplete }) {
 
   return (
     <div className="space-y-6">
-      {/* 파일 업로드 영역 */}
+      {/* ?�일 ?�로???�역 */}
       {!result && (
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div 
@@ -75,7 +75,7 @@ export default function ContractUpload({ onComplete }) {
             
             <label className="cursor-pointer">
               <span className="font-bold hover:opacity-70 transition-opacity" style={{ color: '#249689', fontSize: '15px' }}>
-                파일 선택
+                ?�일 ?�택
               </span>
               <input
                 type="file"
@@ -86,16 +86,16 @@ export default function ContractUpload({ onComplete }) {
             </label>
             
             <p className="mt-3" style={{ color: '#6b7280', fontSize: '15px' }}>
-              또는 파일을 드래그하여 업로드
+              ?�는 ?�일???�래그하???�로??
             </p>
             <p className="mt-2" style={{ color: '#9ca3af', fontSize: '15px' }}>
-              PDF, JPG, PNG (최대 10MB)
+              PDF, JPG, PNG (최�? 10MB)
             </p>
           </div>
         </div>
       )}
 
-      {/* 선택된 파일 정보 */}
+      {/* ?�택???�일 ?�보 */}
       {file && !result && !analyzing && (
         <div className="bg-white rounded-lg shadow-lg p-4">
           <div className="flex items-center">
@@ -110,20 +110,20 @@ export default function ContractUpload({ onComplete }) {
         </div>
       )}
 
-      {/* 에러 메시지 */}
+      {/* ?�러 메시지 */}
       {error && (
         <div className="bg-white rounded-lg shadow-lg p-4">
           <div className="flex items-start" style={{ borderLeft: '4px solid #dc2626', paddingLeft: '12px' }}>
             <AlertCircle size={20} style={{ color: '#dc2626' }} className="mr-3 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold" style={{ color: '#dc2626', fontSize: '15px' }}>오류 발생</p>
+              <p className="font-bold" style={{ color: '#dc2626', fontSize: '15px' }}>?�류 발생</p>
               <p style={{ color: '#dc2626', fontSize: '15px' }} className="mt-1">{error}</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* 분석 중 */}
+      {/* 분석 �?*/}
       {analyzing && (
         <div className="bg-white rounded-lg shadow-lg p-8 text-center">
           <div className="flex justify-center mb-4">
@@ -136,15 +136,15 @@ export default function ContractUpload({ onComplete }) {
             </div>
           </div>
           <h3 className="font-bold mb-2" style={{ color: '#000000', fontSize: '18px' }}>
-            AI가 계약서를 분석하고 있습니다
+            AI가 계약?��? 분석?�고 ?�습?�다
           </h3>
           <p style={{ color: '#6b7280', fontSize: '15px' }}>
-            잠시만 기다려주세요... (약 10-30초 소요)
+            ?�시�?기다?�주?�요... (??10-30�??�요)
           </p>
           <div className="mt-6 space-y-2">
-            <p style={{ color: '#6b7280', fontSize: '15px' }}>✓ 계약서 텍스트 추출 중</p>
-            <p style={{ color: '#6b7280', fontSize: '15px' }}>✓ 계약 정보 분석 중</p>
-            <p style={{ color: '#6b7280', fontSize: '15px' }}>✓ 지급 조건 계산 중</p>
+            <p style={{ color: '#6b7280', fontSize: '15px' }}>??계약???�스??추출 �?/p>
+            <p style={{ color: '#6b7280', fontSize: '15px' }}>??계약 ?�보 분석 �?/p>
+            <p style={{ color: '#6b7280', fontSize: '15px' }}>??지�?조건 계산 �?/p>
           </div>
         </div>
       )}

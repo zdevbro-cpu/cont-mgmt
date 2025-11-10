@@ -24,18 +24,18 @@ export default function AdminContractTypesPage() {
   const loadContractTypes = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/contract-types');
+      const response = await fetch('${import.meta.env.VITE_API_URL}/api/contract-types');
       
       if (!response.ok) {
-        throw new Error('계약종류 조회 실패');
+        throw new Error('계약종류 조회 ?�패');
       }
 
       const data = await response.json();
       setTypes(data.types || []);
 
     } catch (error) {
-      console.error('계약종류 조회 오류:', error);
-      alert('계약종류를 불러오는데 실패했습니다.');
+      console.error('계약종류 조회 ?�류:', error);
+      alert('계약종류�?불러?�는???�패?�습?�다.');
     } finally {
       setLoading(false);
     }
@@ -83,13 +83,13 @@ export default function AdminContractTypesPage() {
     const newErrors = {};
 
     if (!formData.code.trim()) {
-      newErrors.code = '코드를 입력해주세요';
+      newErrors.code = '코드�??�력?�주?�요';
     } else if (formData.code.length !== 1) {
-      newErrors.code = '코드는 1글자여야 합니다';
+      newErrors.code = '코드??1글?�여???�니??;
     }
 
     if (!formData.name.trim()) {
-      newErrors.name = '이름을 입력해주세요';
+      newErrors.name = '?�름???�력?�주?�요';
     }
 
     setErrors(newErrors);
@@ -107,8 +107,8 @@ export default function AdminContractTypesPage() {
 
     try {
       const url = modalMode === 'create'
-        ? 'http://localhost:5000/api/contract-types'
-        : `http://localhost:5000/api/contract-types/${selectedType.id}`;
+        ? '${import.meta.env.VITE_API_URL}/api/contract-types'
+        : `${import.meta.env.VITE_API_URL}/api/contract-types/${selectedType.id}`;
 
       const method = modalMode === 'create' ? 'POST' : 'PUT';
 
@@ -122,42 +122,42 @@ export default function AdminContractTypesPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '저장 실패');
+        throw new Error(errorData.error || '?�???�패');
       }
 
-      alert(modalMode === 'create' ? '계약종류가 생성되었습니다.' : '계약종류가 수정되었습니다.');
+      alert(modalMode === 'create' ? '계약종류가 ?�성?�었?�니??' : '계약종류가 ?�정?�었?�니??');
       closeModal();
       loadContractTypes();
 
     } catch (error) {
-      console.error('저장 오류:', error);
-      alert(error.message || '저장하는데 실패했습니다.');
+      console.error('?�???�류:', error);
+      alert(error.message || '?�?�하?�데 ?�패?�습?�다.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (type) => {
-    if (!confirm(`"${type.name}" 계약종류를 삭제하시겠습니까?`)) {
+    if (!confirm(`"${type.name}" 계약종류�???��?�시겠습?�까?`)) {
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/contract-types/${type.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/contract-types/${type.id}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '삭제 실패');
+        throw new Error(errorData.error || '??�� ?�패');
       }
 
-      alert('계약종류가 삭제되었습니다.');
+      alert('계약종류가 ??��?�었?�니??');
       loadContractTypes();
 
     } catch (error) {
-      console.error('삭제 오류:', error);
-      alert(error.message || '삭제하는데 실패했습니다.');
+      console.error('??�� ?�류:', error);
+      alert(error.message || '??��?�는???�패?�습?�다.');
     }
   };
 
@@ -169,32 +169,32 @@ export default function AdminContractTypesPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
-      {/* 헤더 */}
+      {/* ?�더 */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col items-center gap-4">
             <img src="/images/logo.png" alt="Logo" className="h-12" />
             <h1 className="font-bold text-center" style={{ color: '#000000', fontSize: '36px' }}>
-              계약종류 관리
+              계약종류 관�?
             </h1>
           </div>
         </div>
       </div>
 
-      {/* 메인 컨텐츠 */}
+      {/* 메인 컨텐�?*/}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* 검색 및 추가 버튼 */}
+        {/* 검??�?추�? 버튼 */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-            {/* 검색 */}
+            {/* 검??*/}
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2" 
                       size={20} 
                       style={{ color: '#9ca3af' }} />
               <input
                 type="text"
-                placeholder="코드, 이름, 설명으로 검색..."
+                placeholder="코드, ?�름, ?�명?�로 검??.."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
@@ -206,7 +206,7 @@ export default function AdminContractTypesPage() {
               />
             </div>
 
-            {/* 추가 버튼 */}
+            {/* 추�? 버튼 */}
             <button
               onClick={openCreateModal}
               className="flex items-center gap-2 px-6 py-2 rounded-lg font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity"
@@ -216,14 +216,14 @@ export default function AdminContractTypesPage() {
               }}
             >
               <Plus size={20} />
-              계약종류 추가
+              계약종류 추�?
             </button>
           </div>
 
-          {/* 검색 결과 수 */}
+          {/* 검??결과 ??*/}
           <div className="mt-4 pt-4 border-t">
             <span style={{ color: '#6b7280', fontSize: '15px' }}>
-              총 <span className="font-bold" style={{ color: '#249689' }}>{filteredTypes.length}</span>개
+              �?<span className="font-bold" style={{ color: '#249689' }}>{filteredTypes.length}</span>�?
             </span>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function AdminContractTypesPage() {
             <div className="text-center py-12">
               <AlertCircle size={48} className="mx-auto mb-4" style={{ color: '#9ca3af' }} />
               <p style={{ color: '#6b7280', fontSize: '15px' }}>
-                {searchTerm ? '검색 결과가 없습니다.' : '등록된 계약종류가 없습니다.'}
+                {searchTerm ? '검??결과가 ?�습?�다.' : '?�록??계약종류가 ?�습?�다.'}
               </p>
             </div>
           ) : (
@@ -251,16 +251,16 @@ export default function AdminContractTypesPage() {
                       코드
                     </th>
                     <th className="px-6 py-4 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      이름
+                      ?�름
                     </th>
                     <th className="px-6 py-4 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      설명
+                      ?�명
                     </th>
                     <th className="px-6 py-4 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      상태
+                      ?�태
                     </th>
                     <th className="px-6 py-4 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      관리
+                      관�?
                     </th>
                   </tr>
                 </thead>
@@ -291,7 +291,7 @@ export default function AdminContractTypesPage() {
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {type.is_active ? '활성' : '비활성'}
+                          {type.is_active ? '?�성' : '비활??}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -299,14 +299,14 @@ export default function AdminContractTypesPage() {
                           <button
                             onClick={() => openEditModal(type)}
                             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                            title="수정"
+                            title="?�정"
                           >
                             <Edit2 size={18} style={{ color: '#249689' }} />
                           </button>
                           <button
                             onClick={() => handleDelete(type)}
                             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                            title="삭제"
+                            title="??��"
                           >
                             <Trash2 size={18} style={{ color: '#ef4444' }} />
                           </button>
@@ -325,10 +325,10 @@ export default function AdminContractTypesPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            {/* 모달 헤더 */}
+            {/* 모달 ?�더 */}
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="font-bold" style={{ color: '#000000', fontSize: '18px' }}>
-                {modalMode === 'create' ? '계약종류 추가' : '계약종류 수정'}
+                {modalMode === 'create' ? '계약종류 추�?' : '계약종류 ?�정'}
               </h2>
               <button
                 onClick={closeModal}
@@ -338,7 +338,7 @@ export default function AdminContractTypesPage() {
               </button>
             </div>
 
-            {/* 모달 내용 */}
+            {/* 모달 ?�용 */}
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {/* 코드 */}
               <div>
@@ -355,7 +355,7 @@ export default function AdminContractTypesPage() {
                     borderColor: errors.code ? '#ef4444' : '#e5e7eb',
                     fontSize: '15px'
                   }}
-                  placeholder="p, c, l, o, m, a, t 중 1글자"
+                  placeholder="p, c, l, o, m, a, t �?1글??
                   disabled={modalMode === 'edit'}
                 />
                 {errors.code && (
@@ -365,10 +365,10 @@ export default function AdminContractTypesPage() {
                 )}
               </div>
 
-              {/* 이름 */}
+              {/* ?�름 */}
               <div>
                 <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                  이름 <span style={{ color: '#ef4444' }}>*</span>
+                  ?�름 <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -379,7 +379,7 @@ export default function AdminContractTypesPage() {
                     borderColor: errors.name ? '#ef4444' : '#e5e7eb',
                     fontSize: '15px'
                   }}
-                  placeholder="사과나무, COOP, LAS COOP 등"
+                  placeholder="?�과?�무, COOP, LAS COOP ??
                 />
                 {errors.name && (
                   <p className="mt-1" style={{ color: '#ef4444', fontSize: '13px' }}>
@@ -388,10 +388,10 @@ export default function AdminContractTypesPage() {
                 )}
               </div>
 
-              {/* 설명 */}
+              {/* ?�명 */}
               <div>
                 <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                  설명
+                  ?�명
                 </label>
                 <textarea
                   value={formData.description}
@@ -402,11 +402,11 @@ export default function AdminContractTypesPage() {
                     borderColor: '#e5e7eb',
                     fontSize: '15px'
                   }}
-                  placeholder="계약종류에 대한 설명을 입력하세요"
+                  placeholder="계약종류???�???�명???�력?�세??
                 />
               </div>
 
-              {/* 활성화 여부 */}
+              {/* ?�성???��? */}
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
@@ -417,7 +417,7 @@ export default function AdminContractTypesPage() {
                   style={{ accentColor: '#249689' }}
                 />
                 <label htmlFor="is_active" className="font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                  활성화
+                  ?�성??
                 </label>
               </div>
 
@@ -444,7 +444,7 @@ export default function AdminContractTypesPage() {
                     fontSize: '15px'
                   }}
                 >
-                  {saving ? '저장 중...' : (modalMode === 'create' ? '추가' : '수정')}
+                  {saving ? '?�??�?..' : (modalMode === 'create' ? '추�?' : '?�정')}
                 </button>
               </div>
             </form>

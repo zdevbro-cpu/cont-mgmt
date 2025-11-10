@@ -40,17 +40,17 @@ export default function ContractListPage() {
         ...filters
       });
 
-      // 빈 값 제거
+      // �?�??�거
       for (const [key, value] of params.entries()) {
         if (!value || value === 'all') {
           params.delete(key);
         }
       }
 
-      const response = await fetch(`http://localhost:5000/api/contracts?${params}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/contracts?${params}`);
       
       if (!response.ok) {
-        throw new Error('목록 조회 실패');
+        throw new Error('목록 조회 ?�패');
       }
 
       const data = await response.json();
@@ -66,7 +66,7 @@ export default function ContractListPage() {
       }
 
     } catch (error) {
-      alert('계약서 목록을 불러오는데 실패했습니다.');
+      alert('계약??목록??불러?�는???�패?�습?�다.');
       setContracts([]);
     } finally {
       setLoading(false);
@@ -93,33 +93,33 @@ export default function ContractListPage() {
   };
 
   const handleDelete = async (contract, event) => {
-    event.stopPropagation(); // 행 클릭 이벤트 방지
+    event.stopPropagation(); // ???�릭 ?�벤??방�?
     
-    if (!confirm(`"${contract.contractor_name}" 계약을 삭제하시겠습니까?`)) {
+    if (!confirm(`"${contract.contractor_name}" 계약????��?�시겠습?�까?`)) {
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/contracts/${contract.id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/contracts/${contract.id}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '삭제 실패');
+        throw new Error(errorData.error || '??�� ?�패');
       }
 
-      alert('계약이 삭제되었습니다.');
+      alert('계약????��?�었?�니??');
       loadContracts();
 
     } catch (error) {
-      alert(error.message || '삭제하는데 실패했습니다.');
+      alert(error.message || '??��?�는???�패?�습?�다.');
     }
   };
 
   const formatCurrency = (amount) => {
     if (!amount) return '-';
-    return new Intl.NumberFormat('ko-KR').format(amount) + '원';
+    return new Intl.NumberFormat('ko-KR').format(amount) + '??;
   };
 
   const formatDate = (dateString) => {
@@ -129,12 +129,12 @@ export default function ContractListPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 네비게이션 */}
+      {/* ?�비게이??*/}
       <Navigation />
 
-      {/* 메인 컨텐츠 */}
+      {/* 메인 컨텐�?*/}
       <div className="max-w-7xl mx-auto p-6">
-        {/* 필터 */}
+        {/* ?�터 */}
         <ContractFilters 
           filters={filters}
           onFilterChange={handleFilterChange}
@@ -142,14 +142,14 @@ export default function ContractListPage() {
         />
 
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* 헤더 영역 */}
+          {/* ?�더 ?�역 */}
           <div className="p-4 border-b">
             <div className="flex items-center justify-between">
               <h2 className="font-bold" style={{ color: '#000000', fontSize: '18px' }}>
-                등록된 계약서 목록
+                ?�록??계약??목록
                 {(pagination?.total > 0) && (
                   <span style={{ color: '#6b7280', fontSize: '15px' }} className="ml-2">
-                    ({pagination.total}건)
+                    ({pagination.total}�?
                   </span>
                 )}
               </h2>
@@ -159,29 +159,29 @@ export default function ContractListPage() {
                 style={{ backgroundColor: '#249689', fontSize: '15px' }}
               >
                 <Plus size={18} />
-                계약서 등록
+                계약???�록
               </button>
             </div>
           </div>
 
-          {/* 테이블 */}
+          {/* ?�이�?*/}
           {loading ? (
             <div className="p-12 text-center">
               <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" 
                    style={{ borderColor: '#249689', borderTopColor: 'transparent' }}>
               </div>
               <p className="mt-4" style={{ color: '#6b7280', fontSize: '15px' }}>
-                로딩 중...
+                로딩 �?..
               </p>
             </div>
           ) : contracts.length === 0 ? (
             <div className="p-12 text-center">
               <FileText size={80} style={{ color: '#d1d5db' }} className="mx-auto mb-4" />
               <h3 className="font-bold mb-2" style={{ color: '#000000', fontSize: '18px' }}>
-                {filters.search || filters.startDate || filters.minAmount ? '검색 결과가 없습니다' : '등록된 계약서가 없습니다'}
+                {filters.search || filters.startDate || filters.minAmount ? '검??결과가 ?�습?�다' : '?�록??계약?��? ?�습?�다'}
               </h3>
               <p className="mb-6" style={{ color: '#6b7280', fontSize: '15px' }}>
-                {filters.search || filters.startDate || filters.minAmount ? '다른 조건으로 검색해보세요' : '새 계약서를 등록하여 관리를 시작하세요'}
+                {filters.search || filters.startDate || filters.minAmount ? '?�른 조건?�로 검?�해보세?? : '??계약?��? ?�록?�여 관리�? ?�작?�세??}
               </p>
               {!(filters.search || filters.startDate || filters.minAmount) && (
                 <button
@@ -190,7 +190,7 @@ export default function ContractListPage() {
                   style={{ backgroundColor: '#249689', fontSize: '15px' }}
                 >
                   <Plus size={18} />
-                  첫 계약서 등록하기
+                  �?계약???�록?�기
                 </button>
               )}
             </div>
@@ -206,19 +206,19 @@ export default function ContractListPage() {
                       계약번호
                     </th>
                     <th className="px-4 py-3 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      계약자
+                      계약??
                     </th>
                     <th className="px-4 py-3 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      전화번호
+                      ?�화번호
                     </th>
                     <th className="px-4 py-3 text-right font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      투자금액
+                      ?�자금액
                     </th>
                     <th className="px-4 py-3 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      계약일
+                      계약??
                     </th>
                     <th className="px-4 py-3 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      관리
+                      관�?
                     </th>
                   </tr>
                 </thead>
@@ -251,7 +251,7 @@ export default function ContractListPage() {
                           <button
                             onClick={() => navigate(`/contracts/${contract.id}`)}
                             className="p-2 hover:bg-gray-100 rounded"
-                            title="상세보기"
+                            title="?�세보기"
                           >
                             <Eye size={18} style={{ color: '#249689' }} />
                           </button>
@@ -259,7 +259,7 @@ export default function ContractListPage() {
                             <button
                               onClick={(e) => handleDelete(contract, e)}
                               className="p-2 hover:bg-gray-100 rounded"
-                              title="삭제"
+                              title="??��"
                             >
                               <Trash2 size={18} style={{ color: '#ef4444' }} />
                             </button>
@@ -273,7 +273,7 @@ export default function ContractListPage() {
             </div>
           )}
 
-          {/* 페이지네이션 */}
+          {/* ?�이지?�이??*/}
           {(pagination?.totalPages > 1) && (
             <div className="p-4 border-t flex items-center justify-center gap-2">
               <button
@@ -286,7 +286,7 @@ export default function ContractListPage() {
                   fontSize: '15px'
                 }}
               >
-                이전
+                ?�전
               </button>
               
               <span style={{ color: '#000000', fontSize: '15px' }} className="px-4">
@@ -303,7 +303,7 @@ export default function ContractListPage() {
                   fontSize: '15px'
                 }}
               >
-                다음
+                ?�음
               </button>
             </div>
           )}
