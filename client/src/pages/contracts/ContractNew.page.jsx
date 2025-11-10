@@ -35,7 +35,7 @@ export default function ContractNewPage() {
 
   const loadContractTypes = async () => {
     try {
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/contract-types');
+      const response = await fetch('http://localhost:5000/api/contract-types');
       const data = await response.json();
       setContractTypes(data.types || []);
     } catch (error) {
@@ -44,7 +44,7 @@ export default function ContractNewPage() {
 
   const loadTemplates = async (contractTypeId) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/contract-templates?contract_type_id=${contractTypeId}&is_available=true`);
+      const response = await fetch(`http://localhost:5000/api/contract-templates?contract_type_id=${contractTypeId}&is_available=true`);
       const data = await response.json();
       setTemplates(data || []);
     } catch (error) {
@@ -73,7 +73,7 @@ export default function ContractNewPage() {
     const template = templates.find(t => t.id === templateId);
     setSelectedTemplate(template);
 
-    // ?�플�??�보�????�동 ?�력
+    // 템플릿 정보로 폼 자동 입력
     if (template) {
       updateFormWithTemplate(template, formData);
     }
@@ -82,17 +82,17 @@ export default function ContractNewPage() {
   const updateFormWithTemplate = (template, currentFormData) => {
     const newFormData = { ...currentFormData };
 
-    // ?�플릿의 기�?지?�금 ?�용
+    // 템플릿의 기타지원금 적용
     if (template.other_support_amount !== null && template.other_support_amount !== undefined) {
       newFormData.other_support = template.other_support_amount;
     } else {
       newFormData.other_support = 0;
     }
 
-    // 계약기간???�고 계약?�이 ?�으�?계약종료???�동 계산 (계약??+ 계약기간 - 1??
+    // 계약기간이 있고 계약일이 있으면 계약종료일 자동 계산 (계약일 + 계약기간 - 1일)
     if (template.contract_period && newFormData.contract_date) {
       const [year, month, day] = newFormData.contract_date.split('-').map(Number);
-      const startDate = new Date(year, month - 1, day); // 로컬 ?�간?� ?�용
+      const startDate = new Date(year, month - 1, day); // 로컬 시간대 사용
       startDate.setMonth(startDate.getMonth() + template.contract_period);
       startDate.setDate(startDate.getDate() - 1);
       
@@ -102,10 +102,10 @@ export default function ContractNewPage() {
       newFormData.contract_end_date = `${endYear}-${endMonth}-${endDay}`;
     }
 
-    // 첫�?급일 ?�동 계산
+    // 첫지급일 자동 계산
     if (template.first_payment_months && newFormData.contract_date) {
       const [year, month, day] = newFormData.contract_date.split('-').map(Number);
-      const firstPaymentDate = new Date(year, month - 1, day); // 로컬 ?�간?� ?�용
+      const firstPaymentDate = new Date(year, month - 1, day); // 로컬 시간대 사용
       firstPaymentDate.setMonth(firstPaymentDate.getMonth() + template.first_payment_months);
       
       const fpYear = firstPaymentDate.getFullYear();
@@ -114,15 +114,15 @@ export default function ContractNewPage() {
       newFormData.first_payment = `${fpYear}-${fpMonth}-${fpDay}`;
     }
 
-    // ??지급액 ?�동 ?�력 (?�자금액�?지급액/Unit???�으�?
+    // 월 지급액 자동 입력 (투자금액과 지급액/Unit이 있으면)
     if (template.monthly_payment_amount && newFormData.amount) {
-      // ?�플릿의 unit_amount�??�용, ?�으�?기본�?10000000 (1천만??
+      // 템플릿의 unit_amount를 사용, 없으면 기본값 10000000 (1천만원)
       const unitAmount = template.unit_amount || 10000000;
       const units = parseInt(newFormData.amount) / unitAmount;
       const calculatedPayment = Math.round(template.monthly_payment_amount * units);
       newFormData.monthly_payment = calculatedPayment;
       
-      // ??지급총??= ?�자?�익�?+ 기�?지?�금
+      // 월 지급총액 = 투자수익금 + 기타지원금
       const templateOtherSupport = newFormData.other_support || 0;
       newFormData.total_monthly_payment = calculatedPayment + parseInt(templateOtherSupport);
     }
@@ -134,12 +134,12 @@ export default function ContractNewPage() {
     const newContractDate = e.target.value;
     const newFormData = { ...formData, contract_date: newContractDate };
 
-    // ?�플릿이 ?�택?�어 ?�으�??�동 계산
+    // 템플릿이 선택되어 있으면 자동 계산
     if (selectedTemplate && newContractDate) {
-      // 계약종료???�동 계산 (계약??+ 계약기간 - 1??
+      // 계약종료일 자동 계산 (계약일 + 계약기간 - 1일)
       if (selectedTemplate.contract_period) {
         const [year, month, day] = newContractDate.split('-').map(Number);
-        const startDate = new Date(year, month - 1, day); // 로컬 ?�간?� ?�용
+        const startDate = new Date(year, month - 1, day); // 로컬 시간대 사용
         startDate.setMonth(startDate.getMonth() + selectedTemplate.contract_period);
         startDate.setDate(startDate.getDate() - 1);
         
@@ -149,10 +149,10 @@ export default function ContractNewPage() {
         newFormData.contract_end_date = `${endYear}-${endMonth}-${endDay}`;
       }
 
-      // 첫�?급일 ?�동 계산
+      // 첫지급일 자동 계산
       if (selectedTemplate.first_payment_months) {
         const [year, month, day] = newContractDate.split('-').map(Number);
-        const firstPaymentDate = new Date(year, month - 1, day); // 로컬 ?�간?� ?�용
+        const firstPaymentDate = new Date(year, month - 1, day); // 로컬 시간대 사용
         firstPaymentDate.setMonth(firstPaymentDate.getMonth() + selectedTemplate.first_payment_months);
         
         const fpYear = firstPaymentDate.getFullYear();
@@ -168,9 +168,9 @@ export default function ContractNewPage() {
   const handleAmountChange = (value) => {
     const newFormData = { ...formData, amount: value };
 
-    // ?�플릿이 ?�택?�어 ?�으�??�자?�익�??�동 계산
+    // 템플릿이 선택되어 있으면 투자수익금 자동 계산
     if (selectedTemplate && value) {
-      // ?�플릿의 unit_amount�??�용, ?�으�?기본�?10000000 (1천만??
+      // 템플릿의 unit_amount를 사용, 없으면 기본값 10000000 (1천만원)
       const unitAmount = selectedTemplate.unit_amount || 10000000;
       const paymentPerUnit = selectedTemplate.monthly_payment_amount || 0;
       const units = parseInt(value) / unitAmount;
@@ -178,15 +178,15 @@ export default function ContractNewPage() {
       
       newFormData.monthly_payment = calculatedPayment;
       
-      // ?�플릿의 기�?지?�금 ?�동 ?�용
+      // 템플릿의 기타지원금 자동 적용
       const templateOtherSupport = selectedTemplate.other_support_amount || 0;
       newFormData.other_support = templateOtherSupport;
       
-      // ??지급총??= ?�자?�익�?+ 기�?지?�금
+      // 월 지급총액 = 투자수익금 + 기타지원금
       const totalAmount = calculatedPayment + templateOtherSupport;
       newFormData.total_monthly_payment = totalAmount;
 
-      // 첫�?급일 ?�동 계산
+      // 첫지급일 자동 계산
       if (selectedTemplate.first_payment_months && newFormData.contract_date) {
         const [year, month, day] = newFormData.contract_date.split('-').map(Number);
         const firstPaymentDate = new Date(year, month - 1, day);
@@ -198,7 +198,7 @@ export default function ContractNewPage() {
         newFormData.first_payment = `${fpYear}-${fpMonth}-${fpDay}`;
       }
     } else {
-      // ?�플릿이 ?�으�??��?급총??계산
+      // 템플릿이 없으면 월지급총액 계산
       const mp = parseInt(newFormData.monthly_payment) || 0;
       const os = parseInt(newFormData.other_support) || 0;
       newFormData.total_monthly_payment = mp + os;
@@ -210,7 +210,7 @@ export default function ContractNewPage() {
   const handleOtherSupportChange = (value) => {
     const newFormData = { ...formData, other_support: value };
 
-    // ??지급총??계산 (?�자?�익�?+ 기�?지?�금)
+    // 월 지급총액 계산 (투자수익금 + 기타지원금)
     const monthlyPayment = parseInt(newFormData.monthly_payment || 0) || 0;
     const otherSupport = parseInt(value || 0) || 0;
     newFormData.total_monthly_payment = monthlyPayment + otherSupport;
@@ -226,9 +226,9 @@ export default function ContractNewPage() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.contract_type_id) newErrors.contract_type_id = '계약종류???�수?�니??;
-    if (!formData.contractor_name) newErrors.contractor_name = '계약?�명?� ?�수?�니??;
-    if (!formData.contract_date) newErrors.contract_date = '계약?��? ?�수?�니??;
+    if (!formData.contract_type_id) newErrors.contract_type_id = '계약종류는 필수입니다';
+    if (!formData.contractor_name) newErrors.contractor_name = '계약자명은 필수입니다';
+    if (!formData.contract_date) newErrors.contract_date = '계약일은 필수입니다';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -238,14 +238,14 @@ export default function ContractNewPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      alert('?�수 ??��???�력?�주?�요');
+      alert('필수 항목을 입력해주세요');
       return;
     }
 
     setSaving(true);
 
     try {
-      // �?�??�거
+      // 빈 값 제거
       const dataToSend = {};
       Object.keys(formData).forEach(key => {
         if (formData[key] !== '' && formData[key] !== null && formData[key] !== undefined) {
@@ -253,12 +253,12 @@ export default function ContractNewPage() {
         }
       });
 
-      // ?��?급총???�계??(DB ?�??직전)
+      // 월지급총액 재계산 (DB 저장 직전)
       const monthlyPayment = parseInt(dataToSend.monthly_payment) || 0;
       const otherSupport = parseInt(dataToSend.other_support) || 0;
       dataToSend.total_monthly_payment = monthlyPayment + otherSupport;
 
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/contracts', {
+      const response = await fetch('http://localhost:5000/api/contracts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -267,14 +267,14 @@ export default function ContractNewPage() {
       });
 
       if (!response.ok) {
-        throw new Error('계약 ?�성 ?�패');
+        throw new Error('계약 생성 실패');
       }
 
-      alert('계약???�성?�었?�니??);
+      alert('계약이 생성되었습니다');
       navigate('/contracts');
 
     } catch (error) {
-      alert('계약 ?�성???�패?�습?�다');
+      alert('계약 생성에 실패했습니다');
     } finally {
       setSaving(false);
     }
@@ -287,18 +287,18 @@ export default function ContractNewPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h1 className="font-bold" style={{ color: '#115e59', fontSize: '28px' }}>
-            계약???�록
+            계약서 등록
           </h1>
         </div>
 
 
-        {/* 계약 ?�보 ??*/}
+        {/* 계약 정보 폼 */}
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-5 space-y-4">
           <h2 className="font-bold" style={{ color: '#115e59', fontSize: '18px' }}>
-            계약 ?�보
+            계약 정보
           </h2>
 
-          {/* 계약종류 / ?�행???�택 */}
+          {/* 계약종류 / 시행일 선택 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="flex items-center justify-between mb-2">
@@ -315,17 +315,17 @@ export default function ContractNewPage() {
                   fontSize: '15px'
                 }}
               >
-                <option value="">?�택?�세??/option>
+                <option value="">선택하세요</option>
                 {contractTypes.map(type => (
                   <option key={type.id} value={type.id}>{type.name}</option>
                 ))}
               </select>
             </div>
 
-            {/* ?�행???�택 */}
+            {/* 시행일 선택 */}
             <div>
               <label className="block mb-2 font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                ?�행???�택
+                시행일 선택
               </label>
               {templates.length > 0 ? (
                 <>
@@ -336,7 +336,7 @@ export default function ContractNewPage() {
                     style={{ fontSize: '15px' }}
                     disabled={!formData.contract_type_id}
                   >
-                    <option value="">?�행?�을 ?�택?�세??/option>
+                    <option value="">시행일을 선택하세요</option>
                     {templates.map(template => (
                       <option key={template.id} value={template.id}>
                         {template.effective_date}
@@ -345,24 +345,24 @@ export default function ContractNewPage() {
                   </select>
                   {selectedTemplate && (
                     <p className="text-xs mt-1" style={{ color: '#10b981' }}>
-                      ???�택???�행?�의 계약 조건???�동?�로 ?�용?�었?�니??
+                      ✓ 선택한 시행일의 계약 조건이 자동으로 적용되었습니다
                     </p>
                   )}
                 </>
               ) : (
                 <p className="text-sm py-2" style={{ color: '#6b7280' }}>
-                  {formData.contract_type_id ? '?�택 가?�한 ?�행?�이 ?�습?�다' : '먼�? 계약종류�??�택?�세??}
+                  {formData.contract_type_id ? '선택 가능한 시행일이 없습니다' : '먼저 계약종류를 선택하세요'}
                 </p>
               )}
             </div>
           </div>
 
-          {/* 계약??/ 계약종료??*/}
+          {/* 계약일 / 계약종료일 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="flex items-center justify-between mb-2">
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                  계약??<span style={{ color: '#ef4444' }}>*</span>
+                  계약일 <span style={{ color: '#ef4444' }}>*</span>
                 </span>
               </label>
               <input
@@ -379,7 +379,7 @@ export default function ContractNewPage() {
             <div>
               <label className="flex items-center justify-between mb-2">
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                  계약종료??
+                  계약종료일
                 </span>
               </label>
               <input
@@ -394,12 +394,12 @@ export default function ContractNewPage() {
             </div>
           </div>
 
-          {/* 계약?�명 / ?�락�?/ ?�메??*/}
+          {/* 계약자명 / 연락처 / 이메일 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="flex items-center justify-between mb-2">
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                  계약?�명 <span style={{ color: '#ef4444' }}>*</span>
+                  계약자명 <span style={{ color: '#ef4444' }}>*</span>
                 </span>
               </label>
               <input
@@ -410,14 +410,14 @@ export default function ContractNewPage() {
                 style={{ 
                   fontSize: '15px'
                 }}
-                placeholder="?�길??
+                placeholder="홍길동"
               />
             </div>
 
             <div>
               <label className="flex items-center justify-between mb-2">
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                  ?�락�?
+                  연락처
                 </span>
               </label>
               <input
@@ -445,7 +445,7 @@ export default function ContractNewPage() {
             <div>
               <label className="flex items-center justify-between mb-2">
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                  ?�메??
+                  이메일
                 </span>
               </label>
               <input
@@ -476,16 +476,16 @@ export default function ContractNewPage() {
               style={{ 
                 fontSize: '15px'
               }}
-              placeholder="?�울??강남�?.."
+              placeholder="서울시 강남구..."
             />
           </div>
 
-          {/* ?�?�명 / 계좌번호 / ?�금�?*/}
+          {/* 은행명 / 계좌번호 / 예금주 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="flex items-center justify-between mb-2">
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                  ?�?�명
+                  은행명
                 </span>
               </label>
               <input
@@ -496,7 +496,7 @@ export default function ContractNewPage() {
                 style={{ 
                   fontSize: '15px'
                 }}
-                placeholder="?�한?�??
+                placeholder="신한은행"
               />
             </div>
 
@@ -520,7 +520,7 @@ export default function ContractNewPage() {
 
             <div>
               <label className="block mb-2 font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                ?�금�?
+                예금주
               </label>
               <input
                 type="text"
@@ -528,17 +528,17 @@ export default function ContractNewPage() {
                 onChange={(e) => setFormData({ ...formData, recipient_name: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                 style={{ fontSize: '15px' }}
-                placeholder="?�길??
+                placeholder="홍길동"
               />
             </div>
           </div>
 
-          {/* ?�자금액 / �?지급일 */}
+          {/* 투자금액 / 첫 지급일 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="flex items-center justify-between mb-2">
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                  ?�자금액
+                  투자금액
                 </span>
               </label>
               <div className="relative">
@@ -556,7 +556,7 @@ export default function ContractNewPage() {
                     if (value && selectedTemplate) {
                       const unitAmount = selectedTemplate.unit_amount || 10000000;
                       if (parseInt(value) < unitAmount) {
-                        alert(`최소?�자?�위??${unitAmount.toLocaleString()}???�니??`);
+                        alert(`최소투자단위는 ${unitAmount.toLocaleString()}원 입니다.`);
                         return;
                       }
                       handleAmountChange(value);
@@ -571,14 +571,14 @@ export default function ContractNewPage() {
                   placeholder="30,000,000"
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2" style={{ color: '#6b7280', fontSize: '15px' }}>
-                  ??
+                  원
                 </span>
               </div>
             </div>
 
             <div>
               <label className="block mb-2 font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                �?지급일
+                첫 지급일
               </label>
               <input
                 type="date"
@@ -590,12 +590,12 @@ export default function ContractNewPage() {
             </div>
           </div>
 
-          {/* ?�자?�익�?/ 기�?지?�금 / ??지급총??*/}
+          {/* 투자수익금 / 기타지원금 / 월 지급총액 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="flex items-center justify-between mb-2">
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                  ?�자?�익�?
+                  투자수익금
                 </span>
               </label>
               <div className="relative">
@@ -623,14 +623,14 @@ export default function ContractNewPage() {
                   placeholder="1,500,000"
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2" style={{ color: '#6b7280', fontSize: '15px' }}>
-                  ??
+                  원
                 </span>
               </div>
             </div>
 
             <div>
               <label className="block mb-2 font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                기�?지?�금
+                기타지원금
               </label>
               <div className="relative">
                 <input
@@ -646,14 +646,14 @@ export default function ContractNewPage() {
                   placeholder="0"
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2" style={{ color: '#6b7280', fontSize: '15px' }}>
-                  ??
+                  원
                 </span>
               </div>
             </div>
 
             <div>
               <label className="block mb-2 font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                ??지급총??
+                월 지급총액
               </label>
               <div className="relative">
                 <input
@@ -669,7 +669,7 @@ export default function ContractNewPage() {
                   placeholder="2,000,000"
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2" style={{ color: '#6b7280', fontSize: '15px' }}>
-                  ??
+                  원
                 </span>
               </div>
             </div>
@@ -686,7 +686,7 @@ export default function ContractNewPage() {
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
               style={{ fontSize: '15px' }}
               rows="2"
-              placeholder="메모�??�력?�세??
+              placeholder="메모를 입력하세요"
             />
           </div>
 
@@ -713,7 +713,7 @@ export default function ContractNewPage() {
                 fontSize: '15px'
               }}
             >
-              {saving ? '?�??�?..' : '?�록'}
+              {saving ? '저장 중...' : '등록'}
             </button>
           </div>
         </form>

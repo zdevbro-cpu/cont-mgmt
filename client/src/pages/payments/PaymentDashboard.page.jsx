@@ -21,12 +21,12 @@ export default function PaymentDashboardPage() {
   const loadPayments = async () => {
     setLoading(true);
     try {
-      // ?�늘 지�?
-      const todayRes = await fetch('${import.meta.env.VITE_API_URL}/api/payments/today');
+      // 오늘 지급
+      const todayRes = await fetch('http://localhost:5000/api/payments/today');
       const todayData = await todayRes.json();
       
-      // 7???�내 지�?
-      const upcomingRes = await fetch('${import.meta.env.VITE_API_URL}/api/payments/upcoming');
+      // 7일 이내 지급
+      const upcomingRes = await fetch('http://localhost:5000/api/payments/upcoming');
       const upcomingData = await upcomingRes.json();
 
       setTodayPayments(todayData.payments || []);
@@ -40,17 +40,17 @@ export default function PaymentDashboardPage() {
       });
 
     } catch (error) {
-      alert('지�?목록??불러?�는???�패?�습?�다.');
+      alert('지급 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleMarkAsPaid = async (paymentId) => {
-    if (!confirm('????��??지�??�료�??�시?�시겠습?�까?')) return;
+    if (!confirm('이 항목을 지급 완료로 표시하시겠습니까?')) return;
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/${paymentId}/status`, {
+      const response = await fetch(`http://localhost:5000/api/payments/${paymentId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -59,19 +59,19 @@ export default function PaymentDashboardPage() {
         })
       });
 
-      if (!response.ok) throw new Error('?�태 변�??�패');
+      if (!response.ok) throw new Error('상태 변경 실패');
 
-      alert('지�??�료�??�시?�었?�니??');
+      alert('지급 완료로 표시되었습니다.');
       loadPayments();
 
     } catch (error) {
-      alert('?�태 변경에 ?�패?�습?�다.');
+      alert('상태 변경에 실패했습니다.');
     }
   };
 
   const handleExportToday = async () => {
     try {
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/payments/export', {
+      const response = await fetch('http://localhost:5000/api/payments/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,41 +83,41 @@ export default function PaymentDashboardPage() {
       const result = await response.json();
       
       if (!result.data || result.data.length === 0) {
-        alert('?�운로드???�이?��? ?�습?�다.');
+        alert('다운로드할 데이터가 없습니다.');
         return;
       }
 
-      // ?��? ?�성
+      // 엑셀 생성
       const ws = XLSX.utils.json_to_sheet(result.data);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, '?�늘 지�?);
+      XLSX.utils.book_append_sheet(wb, ws, '오늘 지급');
       
-      // ?�운로드
+      // 다운로드
       const today = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(wb, `지급목�?${today}.xlsx`);
+      XLSX.writeFile(wb, `지급목록_${today}.xlsx`);
 
     } catch (error) {
-      alert('?��? ?�운로드???�패?�습?�다.');
+      alert('엑셀 다운로드에 실패했습니다.');
     }
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ko-KR').format(amount) + '??;
+    return new Intl.NumberFormat('ko-KR').format(amount) + '원';
   };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f3f4f6' }}>
-      {/* ?�비게이??*/}
+      {/* 네비게이션 */}
       <Navigation />
 
-      {/* 메인 컨텐�?*/}
+      {/* 메인 컨텐츠 */}
       <div className="max-w-7xl mx-auto p-6">
-        {/* ?�계 카드 */}
+        {/* 통계 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-lg p-6" style={{ borderRadius: '10px' }}>
             <div className="flex items-center justify-between mb-2">
               <span className="font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>
-                금일 지�??�상??
+                금일 지급 예상액
               </span>
               <DollarSign size={24} style={{ color: '#249689' }} />
             </div>
@@ -129,19 +129,19 @@ export default function PaymentDashboardPage() {
           <div className="bg-white rounded-lg shadow-lg p-6" style={{ borderRadius: '10px' }}>
             <div className="flex items-center justify-between mb-2">
               <span className="font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>
-                금일 지�?건수
+                금일 지급 건수
               </span>
               <Calendar size={24} style={{ color: '#249689' }} />
             </div>
             <p className="font-bold text-right" style={{ color: '#000000', fontSize: '28px' }}>
-              {stats.today_count.toLocaleString('ko-KR')}�?
+              {stats.today_count.toLocaleString('ko-KR')}건
             </p>
           </div>
 
           <div className="bg-white rounded-lg shadow-lg p-6" style={{ borderRadius: '10px' }}>
             <div className="flex items-center justify-between mb-2">
               <span className="font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>
-                7???�내 지�??�상??
+                7일 이내 지급 예상액
               </span>
               <DollarSign size={24} style={{ color: '#249689' }} />
             </div>
@@ -153,21 +153,21 @@ export default function PaymentDashboardPage() {
           <div className="bg-white rounded-lg shadow-lg p-6" style={{ borderRadius: '10px' }}>
             <div className="flex items-center justify-between mb-2">
               <span className="font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>
-                7???�내 지�?건수
+                7일 이내 지급 건수
               </span>
               <Users size={24} style={{ color: '#249689' }} />
             </div>
             <p className="font-bold text-right" style={{ color: '#000000', fontSize: '28px' }}>
-              {stats.upcoming_count.toLocaleString('ko-KR')}�?
+              {stats.upcoming_count.toLocaleString('ko-KR')}건
             </p>
           </div>
         </div>
 
-        {/* ?�늘 지�?목록 */}
+        {/* 오늘 지급 목록 */}
         <div className="bg-white rounded-lg shadow-lg mb-6" style={{ borderRadius: '10px' }}>
           <div className="p-4 border-b flex items-center justify-between">
             <h2 className="font-bold" style={{ color: '#000000', fontSize: '18px' }}>
-              ?�늘 지�?({todayPayments.length}�?
+              오늘 지급 ({todayPayments.length}건)
             </h2>
             <button
               onClick={handleExportToday}
@@ -175,7 +175,7 @@ export default function PaymentDashboardPage() {
               style={{ backgroundColor: '#249689', fontSize: '15px', borderRadius: '10px' }}
             >
               <Download size={18} />
-              ?��? ?�운로드
+              엑셀 다운로드
             </button>
           </div>
 
@@ -189,10 +189,10 @@ export default function PaymentDashboardPage() {
               <div className="p-12 text-center">
                 <Calendar size={60} style={{ color: '#d1d5db' }} className="mx-auto mb-4" />
                 <p className="font-bold mb-2" style={{ color: '#000000', fontSize: '18px' }}>
-                  ?�늘 지급할 ??��???�습?�다
+                  오늘 지급할 항목이 없습니다
                 </p>
                 <p style={{ color: '#6b7280', fontSize: '15px' }}>
-                  모든 지급이 ?�료?�었거나 ?�정??지급이 ?�습?�다
+                  모든 지급이 완료되었거나 예정된 지급이 없습니다
                 </p>
               </div>
             ) : (
@@ -200,12 +200,12 @@ export default function PaymentDashboardPage() {
                 <thead style={{ backgroundColor: '#f9fafb' }}>
                   <tr>
                     <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>계약번호</th>
-                    <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>계약?�명</th>
-                    <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>?�령?�명</th>
-                    <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>?�??/th>
+                    <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>계약자명</th>
+                    <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>수령자명</th>
+                    <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>은행</th>
                     <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>계좌번호</th>
-                    <th className="px-4 py-3 text-right font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>지급금??/th>
-                    <th className="px-4 py-3 text-center font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>?�션</th>
+                    <th className="px-4 py-3 text-right font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>지급금액</th>
+                    <th className="px-4 py-3 text-center font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>액션</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -226,7 +226,7 @@ export default function PaymentDashboardPage() {
                           style={{ backgroundColor: '#249689', fontSize: '14px', borderRadius: '10px' }}
                         >
                           <Check size={16} />
-                          ?�료
+                          완료
                         </button>
                       </td>
                     </tr>
@@ -237,11 +237,11 @@ export default function PaymentDashboardPage() {
           </div>
         </div>
 
-        {/* 7???�내 지�??�정 */}
+        {/* 7일 이내 지급 예정 */}
         <div className="bg-white rounded-lg shadow-lg" style={{ borderRadius: '10px' }}>
           <div className="p-4 border-b">
             <h2 className="font-bold" style={{ color: '#000000', fontSize: '18px' }}>
-              7???�내 지�??�정 ({upcomingPayments.length}�?
+              7일 이내 지급 예정 ({upcomingPayments.length}건)
             </h2>
           </div>
 
@@ -250,7 +250,7 @@ export default function PaymentDashboardPage() {
               <div className="p-12 text-center">
                 <Users size={60} style={{ color: '#d1d5db' }} className="mx-auto mb-4" />
                 <p className="font-bold mb-2" style={{ color: '#000000', fontSize: '18px' }}>
-                  7???�내 ?�정??지급이 ?�습?�다
+                  7일 이내 예정된 지급이 없습니다
                 </p>
               </div>
             ) : (
@@ -259,9 +259,9 @@ export default function PaymentDashboardPage() {
                   <tr>
                     <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>지급일</th>
                     <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>계약번호</th>
-                    <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>계약?�명</th>
-                    <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>?�령?�명</th>
-                    <th className="px-4 py-3 text-right font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>지급금??/th>
+                    <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>계약자명</th>
+                    <th className="px-4 py-3 text-left font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>수령자명</th>
+                    <th className="px-4 py-3 text-right font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>지급금액</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -24,18 +24,18 @@ export default function AdminUsersPage() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/users');
+      const response = await fetch('http://localhost:5000/api/users');
       
       if (!response.ok) {
-        throw new Error('?�용??조회 ?�패');
+        throw new Error('사용자 조회 실패');
       }
 
       const data = await response.json();
       setUsers(data.users || []);
 
     } catch (error) {
-      console.error('?�용??조회 ?�류:', error);
-      alert('?�용?��? 불러?�는???�패?�습?�다.');
+      console.error('사용자 조회 오류:', error);
+      alert('사용자를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -78,19 +78,19 @@ export default function AdminUsersPage() {
 
     if (modalMode === 'edit') {
       if (!formData.full_name.trim()) {
-        newErrors.full_name = '?�름???�력?�주?�요';
+        newErrors.full_name = '이름을 입력해주세요';
       }
 
       if (!formData.email.trim()) {
-        newErrors.email = '?�메?�을 ?�력?�주?�요';
+        newErrors.email = '이메일을 입력해주세요';
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        newErrors.email = '?�바�??�메???�식???�닙?�다';
+        newErrors.email = '올바른 이메일 형식이 아닙니다';
       }
     } else if (modalMode === 'password') {
       if (!newPassword.trim()) {
-        newErrors.password = '??비�?번호�??�력?�주?�요';
+        newErrors.password = '새 비밀번호를 입력해주세요';
       } else if (newPassword.length < 6) {
-        newErrors.password = '비�?번호??최소 6???�상?�어???�니??;
+        newErrors.password = '비밀번호는 최소 6자 이상이어야 합니다';
       }
     }
 
@@ -109,7 +109,7 @@ export default function AdminUsersPage() {
 
     try {
       if (modalMode === 'edit') {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${selectedUser.id}`, {
+        const response = await fetch(`http://localhost:5000/api/users/${selectedUser.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -119,12 +119,12 @@ export default function AdminUsersPage() {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || '?�정 ?�패');
+          throw new Error(errorData.error || '수정 실패');
         }
 
-        alert('?�용???�보가 ?�정?�었?�니??');
+        alert('사용자 정보가 수정되었습니다.');
       } else if (modalMode === 'password') {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${selectedUser.id}/reset-password`, {
+        const response = await fetch(`http://localhost:5000/api/users/${selectedUser.id}/reset-password`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -134,44 +134,44 @@ export default function AdminUsersPage() {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || '비�?번호 초기???�패');
+          throw new Error(errorData.error || '비밀번호 초기화 실패');
         }
 
-        alert('비�?번호가 초기?�되?�습?�다.');
+        alert('비밀번호가 초기화되었습니다.');
       }
 
       closeModal();
       loadUsers();
 
     } catch (error) {
-      console.error('?�???�류:', error);
-      alert(error.message || '?�?�하?�데 ?�패?�습?�다.');
+      console.error('저장 오류:', error);
+      alert(error.message || '저장하는데 실패했습니다.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (user) => {
-    if (!confirm(`"${user.full_name}" ?�용?��? ??��?�시겠습?�까?`)) {
+    if (!confirm(`"${user.full_name}" 사용자를 삭제하시겠습니까?`)) {
       return;
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${user.id}`, {
+      const response = await fetch(`http://localhost:5000/api/users/${user.id}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '??�� ?�패');
+        throw new Error(errorData.error || '삭제 실패');
       }
 
-      alert('?�용?��? ??��?�었?�니??');
+      alert('사용자가 삭제되었습니다.');
       loadUsers();
 
     } catch (error) {
-      console.error('??�� ?�류:', error);
-      alert(error.message || '??��?�는???�패?�습?�다.');
+      console.error('삭제 오류:', error);
+      alert(error.message || '삭제하는데 실패했습니다.');
     }
   };
 
@@ -188,22 +188,22 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
-      {/* ?�더 */}
+      {/* 헤더 */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col items-center gap-4">
             <img src="/images/logo.png" alt="Logo" className="h-12" />
             <h1 className="font-bold text-center" style={{ color: '#000000', fontSize: '36px' }}>
-              ?��? 관�?
+              유저 관리
             </h1>
           </div>
         </div>
       </div>
 
-      {/* 메인 컨텐�?*/}
+      {/* 메인 컨텐츠 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* 검??*/}
+        {/* 검색 */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2" 
@@ -211,7 +211,7 @@ export default function AdminUsersPage() {
                     style={{ color: '#9ca3af' }} />
             <input
               type="text"
-              placeholder="?�름, ?�메?�로 검??.."
+              placeholder="이름, 이메일로 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
@@ -222,15 +222,15 @@ export default function AdminUsersPage() {
             />
           </div>
 
-          {/* 검??결과 ??*/}
+          {/* 검색 결과 수 */}
           <div className="mt-4 pt-4 border-t">
             <span style={{ color: '#6b7280', fontSize: '15px' }}>
-              �?<span className="font-bold" style={{ color: '#249689' }}>{filteredUsers.length}</span>�?
+              총 <span className="font-bold" style={{ color: '#249689' }}>{filteredUsers.length}</span>명
             </span>
           </div>
         </div>
 
-        {/* ?�용??목록 */}
+        {/* 사용자 목록 */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {loading ? (
             <div className="text-center py-12">
@@ -241,7 +241,7 @@ export default function AdminUsersPage() {
             <div className="text-center py-12">
               <AlertCircle size={48} className="mx-auto mb-4" style={{ color: '#9ca3af' }} />
               <p style={{ color: '#6b7280', fontSize: '15px' }}>
-                {searchTerm ? '검??결과가 ?�습?�다.' : '?�록???�용?��? ?�습?�다.'}
+                {searchTerm ? '검색 결과가 없습니다.' : '등록된 사용자가 없습니다.'}
               </p>
             </div>
           ) : (
@@ -250,19 +250,19 @@ export default function AdminUsersPage() {
                 <thead style={{ backgroundColor: '#f9fafb' }}>
                   <tr>
                     <th className="px-6 py-4 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      ?�름
+                      이름
                     </th>
                     <th className="px-6 py-4 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      ?�메??
+                      이메일
                     </th>
                     <th className="px-6 py-4 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      ??��
+                      역할
                     </th>
                     <th className="px-6 py-4 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      가?�일
+                      가입일
                     </th>
                     <th className="px-6 py-4 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      관�?
+                      관리
                     </th>
                   </tr>
                 </thead>
@@ -287,7 +287,7 @@ export default function AdminUsersPage() {
                             ? 'bg-purple-100 text-purple-800' 
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {user.role === 'admin' ? '관리자' : '?�용??}
+                          {user.role === 'admin' ? '관리자' : '사용자'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -300,21 +300,21 @@ export default function AdminUsersPage() {
                           <button
                             onClick={() => openEditModal(user)}
                             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                            title="?�정"
+                            title="수정"
                           >
                             <Edit2 size={18} style={{ color: '#249689' }} />
                           </button>
                           <button
                             onClick={() => openPasswordModal(user)}
                             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                            title="비�?번호 초기??
+                            title="비밀번호 초기화"
                           >
                             <Key size={18} style={{ color: '#f59e0b' }} />
                           </button>
                           <button
                             onClick={() => handleDelete(user)}
                             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                            title="??��"
+                            title="삭제"
                           >
                             <Trash2 size={18} style={{ color: '#ef4444' }} />
                           </button>
@@ -333,10 +333,10 @@ export default function AdminUsersPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            {/* 모달 ?�더 */}
+            {/* 모달 헤더 */}
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="font-bold" style={{ color: '#000000', fontSize: '18px' }}>
-                {modalMode === 'edit' ? '?�용???�보 ?�정' : '비�?번호 초기??}
+                {modalMode === 'edit' ? '사용자 정보 수정' : '비밀번호 초기화'}
               </h2>
               <button
                 onClick={closeModal}
@@ -346,14 +346,14 @@ export default function AdminUsersPage() {
               </button>
             </div>
 
-            {/* 모달 ?�용 */}
+            {/* 모달 내용 */}
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {modalMode === 'edit' ? (
                 <>
-                  {/* ?�름 */}
+                  {/* 이름 */}
                   <div>
                     <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      ?�름 <span style={{ color: '#ef4444' }}>*</span>
+                      이름 <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
                       type="text"
@@ -364,7 +364,7 @@ export default function AdminUsersPage() {
                         borderColor: errors.full_name ? '#ef4444' : '#e5e7eb',
                         fontSize: '15px'
                       }}
-                      placeholder="?�름???�력?�세??
+                      placeholder="이름을 입력하세요"
                     />
                     {errors.full_name && (
                       <p className="mt-1" style={{ color: '#ef4444', fontSize: '13px' }}>
@@ -373,10 +373,10 @@ export default function AdminUsersPage() {
                     )}
                   </div>
 
-                  {/* ?�메??*/}
+                  {/* 이메일 */}
                   <div>
                     <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      ?�메??<span style={{ color: '#ef4444' }}>*</span>
+                      이메일 <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
                       type="email"
@@ -396,10 +396,10 @@ export default function AdminUsersPage() {
                     )}
                   </div>
 
-                  {/* ??�� */}
+                  {/* 역할 */}
                   <div>
                     <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      ??��
+                      역할
                     </label>
                     <select
                       value={formData.role}
@@ -410,14 +410,14 @@ export default function AdminUsersPage() {
                         fontSize: '15px'
                       }}
                     >
-                      <option value="user">?�용??/option>
+                      <option value="user">사용자</option>
                       <option value="admin">관리자</option>
                     </select>
                   </div>
                 </>
               ) : (
                 <>
-                  {/* ?�용???�보 ?�시 */}
+                  {/* 사용자 정보 표시 */}
                   <div className="p-4 rounded-lg" style={{ backgroundColor: '#f9fafb' }}>
                     <div className="mb-2">
                       <span className="font-bold" style={{ color: '#000000', fontSize: '15px' }}>
@@ -429,10 +429,10 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
 
-                  {/* ??비�?번호 */}
+                  {/* 새 비밀번호 */}
                   <div>
                     <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      ??비�?번호 <span style={{ color: '#ef4444' }}>*</span>
+                      새 비밀번호 <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
                       type="password"
@@ -443,7 +443,7 @@ export default function AdminUsersPage() {
                         borderColor: errors.password ? '#ef4444' : '#e5e7eb',
                         fontSize: '15px'
                       }}
-                      placeholder="최소 6???�상"
+                      placeholder="최소 6자 이상"
                     />
                     {errors.password && (
                       <p className="mt-1" style={{ color: '#ef4444', fontSize: '13px' }}>
@@ -477,7 +477,7 @@ export default function AdminUsersPage() {
                     fontSize: '15px'
                   }}
                 >
-                  {saving ? '?�??�?..' : (modalMode === 'edit' ? '?�정' : '초기??)}
+                  {saving ? '저장 중...' : (modalMode === 'edit' ? '수정' : '초기화')}
                 </button>
               </div>
             </form>
