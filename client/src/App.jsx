@@ -9,6 +9,9 @@ import ContractDetailPage from './pages/contracts/ContractDetail.page';
 import PaymentDashboardPage from './pages/payments/PaymentDashboard.page';
 import AdminContractTypesPage from './pages/admin/AdminContractTypes.page.jsx';
 import AdminUsersPage from './pages/admin/AdminUsers.page.jsx';
+import AdminContractTemplates from './pages/AdminContractTemplates.page';
+
+
 
 function App() {
   return (
@@ -18,6 +21,7 @@ function App() {
           {/* 인증 페이지 */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/admin/templates" element={<AdminContractTemplates />} />
           
           <Route path="/" element={<Navigate to="/login" replace />} />
           

@@ -66,8 +66,8 @@ export default function ContractListPage() {
       }
 
     } catch (error) {
-      console.error('목록 조회 오류:', error);
       alert('계약서 목록을 불러오는데 실패했습니다.');
+      setContracts([]);
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ export default function ContractListPage() {
   const handleDelete = async (contract, event) => {
     event.stopPropagation(); // 행 클릭 이벤트 방지
     
-    if (!confirm(`"${contract.contract_name}" 계약을 삭제하시겠습니까?`)) {
+    if (!confirm(`"${contract.contractor_name}" 계약을 삭제하시겠습니까?`)) {
       return;
     }
 
@@ -113,7 +113,6 @@ export default function ContractListPage() {
       loadContracts();
 
     } catch (error) {
-      console.error('삭제 오류:', error);
       alert(error.message || '삭제하는데 실패했습니다.');
     }
   };
@@ -201,10 +200,10 @@ export default function ContractListPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      계약번호
+                      계약종류
                     </th>
                     <th className="px-4 py-3 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      계약명
+                      계약번호
                     </th>
                     <th className="px-4 py-3 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
                       계약자
@@ -229,11 +228,11 @@ export default function ContractListPage() {
                       key={contract.id} 
                       className="border-t hover:bg-gray-50"
                     >
+                      <td className="px-4 py-3" style={{ fontSize: '15px' }}>
+                        {contract.contract_types?.name || '-'}
+                      </td>
                       <td className="px-4 py-3" style={{ fontSize: '15px', color: '#249689', fontWeight: 'bold' }}>
                         {contract.contract_number}
-                      </td>
-                      <td className="px-4 py-3" style={{ fontSize: '15px' }}>
-                        {contract.contract_name || '-'}
                       </td>
                       <td className="px-4 py-3" style={{ fontSize: '15px' }}>
                         {contract.contractor_name}
