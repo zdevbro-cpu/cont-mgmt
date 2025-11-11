@@ -1,4 +1,89 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
+
+// 라우트 import
+import authRoutes from './routes/auth.route.js';
+import contractsRoutes from './routes/contracts.route.js'; 
+import paymentRoutes from './routes/payment.route.js';
+import contractTypesRoutes from './routes/contract-types.route.js';
+import usersRoutes from './routes/users.route.js';
+import contractTemplatesRouter from './routes/contract-templates.route.js';
+
+dotenv.config();
+
+const app = express();
+
+// Middleware
+app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://your-vercel-app.vercel.app'],
+  origin: ['http://localhost:5173', process.env.VERCEL_URL || 'https://your-vercel-app.vercel.app'],
   credentials: true
 }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Supabase 클라이언트를 req에 추가
+app.use((req, res, next) => {
+  req.supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY
+  );
+  next();
+});
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Welcome to Contract Management API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      payments: '/api/payments',
+      contractTypes: '/api/contract-types',
+      users: '/api/users'
+    }
+  });
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/contracts', contractsRoutes); 
+app.use('/api/payments', paymentRoutes);
+app.use('/api/contract-types', contractTypesRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/contract-templates', contractTemplatesRouter);
+
+// Error Handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    error: {
+      message: err.message || 'Internal Server Error',
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    }
+  });
+});
+
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 Access at: http://localhost:${PORT}`);
+});
+
+export default app;
