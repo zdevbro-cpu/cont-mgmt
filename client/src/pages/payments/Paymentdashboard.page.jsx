@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Download, Check, Calendar, DollarSign, Users } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Navigation from '../../components/Navigation.component';
+import { API } from '../../config/api';
 
 export default function PaymentDashboardPage() {
   const [todayPayments, setTodayPayments] = useState([]);
@@ -22,16 +23,16 @@ export default function PaymentDashboardPage() {
     setLoading(true);
     try {
       // 오늘 지급
-      const todayRes = await fetch('http://localhost:5000/api/payments/today');
+      const todayRes = await fetch(`${API.PAYMENTS}/today`);
       const todayData = await todayRes.json();
-      
+
       // 7일 이내 지급
-      const upcomingRes = await fetch('http://localhost:5000/api/payments/upcoming');
+      const upcomingRes = await fetch(`${API.PAYMENTS}/upcoming`);
       const upcomingData = await upcomingRes.json();
 
       setTodayPayments(todayData.payments || []);
       setUpcomingPayments(upcomingData.payments || []);
-      
+
       setStats({
         today_count: todayData.count || 0,
         today_amount: todayData.total_amount || 0,
@@ -40,7 +41,7 @@ export default function PaymentDashboardPage() {
       });
 
     } catch (error) {
-      console.error('지급 목록 조회 오류:', error);
+      console.error('지급 목록 로드 실패:', error);
       alert('지급 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
@@ -51,7 +52,7 @@ export default function PaymentDashboardPage() {
     if (!confirm('이 항목을 지급 완료로 표시하시겠습니까?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/payments/${paymentId}/status`, {
+      const response = await fetch(`${API.PAYMENTS}/${paymentId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -66,14 +67,14 @@ export default function PaymentDashboardPage() {
       loadPayments();
 
     } catch (error) {
-      console.error('상태 변경 오류:', error);
+      console.error('상태 변경 실패:', error);
       alert('상태 변경에 실패했습니다.');
     }
   };
 
   const handleExportToday = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/payments/export', {
+      const response = await fetch(`${API.PAYMENTS}/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,7 +84,7 @@ export default function PaymentDashboardPage() {
       });
 
       const result = await response.json();
-      
+
       if (!result.data || result.data.length === 0) {
         alert('다운로드할 데이터가 없습니다.');
         return;
@@ -93,13 +94,13 @@ export default function PaymentDashboardPage() {
       const ws = XLSX.utils.json_to_sheet(result.data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, '오늘 지급');
-      
+
       // 다운로드
       const today = new Date().toISOString().split('T')[0];
       XLSX.writeFile(wb, `지급목록_${today}.xlsx`);
 
     } catch (error) {
-      console.error('엑셀 다운로드 오류:', error);
+      console.error('엑셀 다운로드 실패:', error);
       alert('엑셀 다운로드에 실패했습니다.');
     }
   };
@@ -185,8 +186,8 @@ export default function PaymentDashboardPage() {
           <div className="overflow-x-auto">
             {loading ? (
               <div className="p-12 text-center">
-                <div className="inline-block w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" 
-                     style={{ borderColor: '#249689' }}></div>
+                <div className="inline-block w-8 h-8 border-4 border-t-transparent rounded-full animate-spin"
+                  style={{ borderColor: '#249689' }}></div>
               </div>
             ) : todayPayments.length === 0 ? (
               <div className="p-12 text-center">

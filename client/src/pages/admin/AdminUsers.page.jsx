@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Edit2, Trash2, Key, X, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import Navigation from '../../components/Navigation.component';
+import API from '../../config/api';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
@@ -25,7 +26,7 @@ export default function AdminUsersPage() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/users');
+      const response = await fetch(API.USERS);
       
       if (!response.ok) {
         throw new Error('사용자 조회 실패');
@@ -36,7 +37,7 @@ export default function AdminUsersPage() {
 
     } catch (error) {
       console.error('사용자 조회 오류:', error);
-      alert('사용자를 불러오는데 실패했습니다.');
+      alert('사용자 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -110,7 +111,7 @@ export default function AdminUsersPage() {
 
     try {
       if (modalMode === 'edit') {
-        const response = await fetch(`http://localhost:5000/api/users/${selectedUser.id}`, {
+        const response = await fetch(`${API.USERS}/${selectedUser.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -123,9 +124,9 @@ export default function AdminUsersPage() {
           throw new Error(errorData.error || '수정 실패');
         }
 
-        alert('사용자 정보가 수정되었습니다.');
+        alert('사용자 정보가 수정되었습니다');
       } else if (modalMode === 'password') {
-        const response = await fetch(`http://localhost:5000/api/users/${selectedUser.id}/reset-password`, {
+        const response = await fetch(`${API.USERS}/${selectedUser.id}/reset-password`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -158,7 +159,7 @@ export default function AdminUsersPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${user.id}`, {
+      const response = await fetch(`${API.USERS}/${user.id}`, {
         method: 'DELETE',
       });
 
@@ -167,7 +168,7 @@ export default function AdminUsersPage() {
         throw new Error(errorData.error || '삭제 실패');
       }
 
-      alert('사용자가 삭제되었습니다.');
+      alert('사용자가 삭제되었습니다');
       loadUsers();
 
     } catch (error) {
@@ -182,7 +183,7 @@ export default function AdminUsersPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${user.id}`, {
+      const response = await fetch(`${API.USERS}/${user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -195,7 +196,7 @@ export default function AdminUsersPage() {
         throw new Error(errorData.error || '승인 실패');
       }
 
-      alert('사용자가 승인되었습니다.');
+      alert('사용자가 승인되었습니다');
       loadUsers();
 
     } catch (error) {
@@ -216,94 +217,84 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
-      {/* 네비게이션 */}
+    <div className="min-h-screen bg-gray-50">
       <Navigation />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* 검색 */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2" 
-                    size={20} 
-                    style={{ color: '#9ca3af' }} />
-            <input
-              type="text"
-              placeholder="이름, 이메일로 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-              style={{ 
-                borderColor: '#e5e7eb',
-                fontSize: '15px'
-              }}
-            />
-          </div>
-
-          {/* 검색 결과 수 */}
-          <div className="mt-4 pt-4 border-t">
-            <span style={{ color: '#6b7280', fontSize: '15px' }}>
-              총 <span className="font-bold" style={{ color: '#249689' }}>{filteredUsers.length}</span>명
-            </span>
-          </div>
-        </div>
-
-        {/* 사용자 목록 */}
+      <div className="max-w-7xl mx-auto p-6">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="p-6 border-b">
+            <h1 className="font-bold mb-4" style={{ color: '#000000', fontSize: '24px' }}>
+              사용자 관리
+            </h1>
+            
+            <div className="relative">
+              <Search size={20} style={{ color: '#6b7280' }} className="absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="이름 또는 이메일로 검색"
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
+                style={{ 
+                  borderColor: '#e5e7eb',
+                  fontSize: '15px'
+                }}
+              />
+            </div>
+          </div>
+
           {loading ? (
-            <div className="text-center py-12">
+            <div className="p-12 text-center">
               <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" 
-                   style={{ borderColor: '#249689', borderTopColor: 'transparent' }}></div>
+                   style={{ borderColor: '#249689', borderTopColor: 'transparent' }}>
+              </div>
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="text-center py-12">
-              <AlertCircle size={48} className="mx-auto mb-4" style={{ color: '#9ca3af' }} />
-              <p style={{ color: '#6b7280', fontSize: '15px' }}>
-                {searchTerm ? '검색 결과가 없습니다.' : '등록된 사용자가 없습니다.'}
+            <div className="p-12 text-center">
+              <AlertCircle size={60} style={{ color: '#d1d5db' }} className="mx-auto mb-4" />
+              <p className="font-bold" style={{ color: '#000000', fontSize: '18px' }}>
+                {searchTerm ? '검색 결과가 없습니다' : '등록된 사용자가 없습니다'}
               </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead style={{ backgroundColor: '#f9fafb' }}>
+                <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-4 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
+                    <th className="px-6 py-3 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
                       이름
                     </th>
-                    <th className="px-6 py-4 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
+                    <th className="px-6 py-3 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
                       이메일
                     </th>
-                    <th className="px-6 py-4 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      역할
+                    <th className="px-6 py-3 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
+                      권한
                     </th>
-                    <th className="px-6 py-4 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
+                    <th className="px-6 py-3 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
                       가입일
                     </th>
-                    <th className="px-6 py-4 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
+                    <th className="px-6 py-3 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
                       관리
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredUsers.map((user) => (
-                    <tr key={user.id} 
-                        className="border-t hover:bg-gray-50 transition-colors"
-                        style={{ borderColor: '#e5e7eb' }}>
+                    <tr key={user.id} className="border-t hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <span className="font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                          {user.full_name || '-'}
+                          {user.full_name}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span style={{ color: '#6b7280', fontSize: '15px' }}>
-                          {user.email || '-'}
+                          {user.email}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                        <span className={`inline-block px-3 py-1 rounded-full font-bold text-sm ${
                           user.role === 'admin' 
-                            ? 'bg-purple-100 text-purple-800' 
+                            ? 'bg-purple-100 text-purple-800'
                             : user.role === 'pending'
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-blue-100 text-blue-800'
@@ -366,7 +357,6 @@ export default function AdminUsersPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            {/* 모달 헤더 */}
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="font-bold" style={{ color: '#000000', fontSize: '18px' }}>
                 {modalMode === 'edit' ? '사용자 정보 수정' : '비밀번호 초기화'}
@@ -379,11 +369,9 @@ export default function AdminUsersPage() {
               </button>
             </div>
 
-            {/* 모달 내용 */}
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {modalMode === 'edit' ? (
                 <>
-                  {/* 이름 */}
                   <div>
                     <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
                       이름 <span style={{ color: '#ef4444' }}>*</span>
@@ -406,7 +394,6 @@ export default function AdminUsersPage() {
                     )}
                   </div>
 
-                  {/* 이메일 */}
                   <div>
                     <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
                       이메일 <span style={{ color: '#ef4444' }}>*</span>
@@ -429,10 +416,9 @@ export default function AdminUsersPage() {
                     )}
                   </div>
 
-                  {/* 역할 */}
                   <div>
                     <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      역할
+                      권한
                     </label>
                     <select
                       value={formData.role}
@@ -450,7 +436,6 @@ export default function AdminUsersPage() {
                 </>
               ) : (
                 <>
-                  {/* 사용자 정보 표시 */}
                   <div className="p-4 rounded-lg" style={{ backgroundColor: '#f9fafb' }}>
                     <div className="mb-2">
                       <span className="font-bold" style={{ color: '#000000', fontSize: '15px' }}>
@@ -462,7 +447,6 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
 
-                  {/* 새 비밀번호 */}
                   <div>
                     <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
                       새 비밀번호 <span style={{ color: '#ef4444' }}>*</span>
@@ -487,7 +471,6 @@ export default function AdminUsersPage() {
                 </>
               )}
 
-              {/* 버튼 */}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -510,7 +493,7 @@ export default function AdminUsersPage() {
                     fontSize: '15px'
                   }}
                 >
-                  {saving ? '저장 중...' : (modalMode === 'edit' ? '수정' : '초기화')}
+                  {saving ? '저장중..' : (modalMode === 'edit' ? '수정' : '초기화')}
                 </button>
               </div>
             </form>

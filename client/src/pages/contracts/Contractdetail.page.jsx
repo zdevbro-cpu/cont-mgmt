@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit2, Save, X, Trash2, Calendar, Check, Clock } from 'lucide-react';
 import Navigation from '../../components/Navigation.component';
+import API from '../../config/api';
 
 export default function ContractDetailPage() {
   const { id } = useParams();
@@ -26,7 +27,7 @@ export default function ContractDetailPage() {
     
     setLoadingSchedules(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/payments/schedule/${id}`);
+      const response = await fetch(`${API.PAYMENTS}/schedule/${id}`);
       
       if (!response.ok) {
         throw new Error('스케줄 조회 실패');
@@ -45,7 +46,7 @@ export default function ContractDetailPage() {
   const loadContract = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/contracts/${id}`);
+      const response = await fetch(`${API.CONTRACTS}/${id}`);
       
       if (!response.ok) {
         throw new Error('조회 실패');
@@ -76,7 +77,7 @@ export default function ContractDetailPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/contracts/${id}`, {
+      const response = await fetch(`${API.CONTRACTS}/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -104,7 +105,7 @@ export default function ContractDetailPage() {
     if (!confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/contracts/${id}`, {
+      const response = await fetch(`${API.CONTRACTS}/${id}`, {
         method: 'DELETE'
       });
 
@@ -112,7 +113,7 @@ export default function ContractDetailPage() {
         throw new Error('삭제 실패');
       }
 
-      alert('삭제되었습니다.');
+      alert('삭제되었습니다');
       navigate('/contracts');
 
     } catch (error) {
@@ -138,7 +139,7 @@ export default function ContractDetailPage() {
           <div className="inline-block w-12 h-12 border-4 rounded-full animate-spin mb-4" 
                style={{ borderColor: '#249689', borderTopColor: 'transparent' }}>
           </div>
-          <p style={{ color: '#6b7280', fontSize: '15px' }}>로딩 중...</p>
+          <p style={{ color: '#6b7280', fontSize: '15px' }}>로딩 중..</p>
         </div>
       </div>
     );
@@ -196,7 +197,7 @@ export default function ContractDetailPage() {
                       style={{ color: '#249689', fontSize: '15px' }}
                     >
                       <Save size={18} />
-                      {saving ? '저장 중...' : '저장'}
+                      {saving ? '저장중..' : '저장'}
                     </button>
                     <button
                       onClick={handleCancel}
@@ -343,9 +344,9 @@ export default function ContractDetailPage() {
             </h2>
             {schedules.length > 0 && (
               <div className="text-sm" style={{ color: '#6b7280' }}>
-                총 {schedules.length}회 / 
-                완료 {schedules.filter(s => s.payment_status === 'paid').length}회 / 
-                대기 {schedules.filter(s => s.payment_status === 'pending').length}회
+                총 {schedules.length}건 / 
+                완료 {schedules.filter(s => s.payment_status === 'paid').length}건 / 
+                대기 {schedules.filter(s => s.payment_status === 'pending').length}건
               </div>
             )}
           </div>

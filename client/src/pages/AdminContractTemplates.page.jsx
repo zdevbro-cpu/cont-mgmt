@@ -74,6 +74,9 @@ export default function AdminContractTemplates() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('=== 템플릿 저장 시작 ===');
+    console.log('formData:', formData);
+    
     try {
       // PDF 파일이 있으면 먼저 업로드
       let pdfFilePath = formData.pdf_file_path;
@@ -113,9 +116,9 @@ export default function AdminContractTemplates() {
         contract_period: formData.contract_period ? parseInt(formData.contract_period) : null,
         first_payment_months: formData.first_payment_months ? parseInt(formData.first_payment_months) : null,
         payment_interval: formData.payment_interval || null,
-        unit_amount: formData.unit_amount !== '' ? parseInt(formData.unit_amount || 0) : null,
-        monthly_payment_amount: formData.monthly_payment_amount !== '' ? parseInt(formData.monthly_payment_amount || 0) : null,
-        other_support_amount: formData.other_support_amount !== '' ? parseInt(formData.other_support_amount || 0) : 0,
+        unit_amount: formData.unit_amount !== '' ? parseInt(String(formData.unit_amount).replace(/,/g, '')) : null,
+        monthly_payment_amount: formData.monthly_payment_amount !== '' ? parseInt(String(formData.monthly_payment_amount).replace(/,/g, '')) : null,
+        other_support_amount: formData.other_support_amount !== '' ? parseInt(String(formData.other_support_amount).replace(/,/g, '')) : 0,
         required_fields: formData.required_fields || [],
         field_rules: formData.field_rules || {},
         memo: formData.memo || null,
@@ -127,11 +130,16 @@ export default function AdminContractTemplates() {
         changed_by: user?.id
       };
 
+      console.log('템플릿 저장 payload:', payload);
+
       const url = editingTemplate
         ? `http://localhost:5000/api/contract-templates/${editingTemplate.id}`
         : 'http://localhost:5000/api/contract-templates';
       
       const method = editingTemplate ? 'PUT' : 'POST';
+      
+      console.log('요청 URL:', url);
+      console.log('요청 Method:', method);
 
       const response = await fetch(url, {
         method,
@@ -139,20 +147,27 @@ export default function AdminContractTemplates() {
         body: JSON.stringify(payload)
       });
 
+      console.log('응답 상태:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.log('에러 응답:', errorData);
         if (errorData.error?.includes('duplicate key')) {
           alert('이미 같은 계약타입과 시행일 조합의 템플릿이 존재합니다.');
         } else {
-          alert('템플릿 저장에 실패했습니다.');
+          alert('템플릿 저장에 실패했습니다: ' + (errorData.error || '알 수 없는 오류'));
         }
         return;
       }
 
+      const result = await response.json();
+      console.log('저장 성공:', result);
+      
       fetchTemplates();
       closeModal();
     } catch (error) {
-      alert('템플릿 저장 중 오류가 발생했습니다.');
+      console.error('저장 중 에러:', error);
+      alert('템플릿 저장 중 오류가 발생했습니다: ' + error.message);
     }
   };
 
@@ -200,9 +215,9 @@ export default function AdminContractTemplates() {
       contract_period: template.contract_period || '',
       first_payment_months: template.first_payment_months || '',
       payment_interval: template.payment_interval || 'monthly',
-      unit_amount: template.unit_amount || '',
-      monthly_payment_amount: template.monthly_payment_amount || '',
-      other_support_amount: template.other_support_amount || '',
+      unit_amount: template.unit_amount ?? '',
+      monthly_payment_amount: template.monthly_payment_amount ?? '',
+      other_support_amount: template.other_support_amount ?? '',
       required_fields: template.required_fields || [],
       field_rules: template.field_rules || {},
       memo: template.memo || '',
@@ -494,7 +509,7 @@ export default function AdminContractTemplates() {
                   <div className="relative">
                     <input
                       type="text"
-                      value={formData.unit_amount ? parseInt(formData.unit_amount).toLocaleString() : ''}
+                      value={formData.unit_amount != null && formData.unit_amount !== '' ? parseInt(formData.unit_amount).toLocaleString() : ''}
                       onChange={(e) => {
                         const value = e.target.value.replace(/,/g, '');
                         if (!isNaN(value)) {
@@ -518,7 +533,7 @@ export default function AdminContractTemplates() {
                   <div className="relative">
                     <input
                       type="text"
-                      value={formData.monthly_payment_amount ? parseInt(formData.monthly_payment_amount).toLocaleString() : ''}
+                      value={formData.monthly_payment_amount != null && formData.monthly_payment_amount !== '' ? parseInt(formData.monthly_payment_amount).toLocaleString() : ''}
                       onChange={(e) => {
                         const value = e.target.value.replace(/,/g, '');
                         if (!isNaN(value)) {
@@ -542,7 +557,7 @@ export default function AdminContractTemplates() {
                   <div className="relative">
                     <input
                       type="text"
-                      value={formData.other_support_amount ? parseInt(formData.other_support_amount).toLocaleString() : ''}
+                      value={formData.other_support_amount != null && formData.other_support_amount !== '' ? parseInt(formData.other_support_amount).toLocaleString() : ''}
                       onChange={(e) => {
                         const value = e.target.value.replace(/,/g, '');
                         if (!isNaN(value)) {

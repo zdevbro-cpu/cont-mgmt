@@ -4,6 +4,7 @@ import { Plus, Eye, Trash2, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ContractFilters from '../../components/contracts/ContractFilters.component';
 import Navigation from '../../components/Navigation.component';
+import API from '../../config/api';
 
 export default function ContractListPage() {
   const navigate = useNavigate();
@@ -40,22 +41,25 @@ export default function ContractListPage() {
         ...filters
       });
 
-      // 빈 값 제거
+      // 빈값 제거
       for (const [key, value] of params.entries()) {
         if (!value || value === 'all') {
           params.delete(key);
         }
       }
 
-      const response = await fetch(`http://localhost:5000/api/contracts?${params}`);
-      
+      console.log('Fetching contracts from:', `${API.CONTRACTS}?${params}`);
+      const response = await fetch(`${API.CONTRACTS}?${params}`);
+
       if (!response.ok) {
-        throw new Error('목록 조회 실패');
+        const errorText = await response.text();
+        console.error('Server response error:', response.status, errorText);
+        throw new Error(`목록 조회 실패: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       setContracts(data.contracts || []);
-      
+
       if (data.pagination) {
         setPagination({
           page: data.pagination.page || 1,
@@ -66,7 +70,8 @@ export default function ContractListPage() {
       }
 
     } catch (error) {
-      alert('계약서 목록을 불러오는데 실패했습니다.');
+      console.error('Contract fetch error details:', error);
+      alert('계약서 목록을 불러오는데 실패했습니다. (콘솔 확인)');
       setContracts([]);
     } finally {
       setLoading(false);
@@ -93,14 +98,14 @@ export default function ContractListPage() {
   };
 
   const handleDelete = async (contract, event) => {
-    event.stopPropagation(); // 행 클릭 이벤트 방지
-    
+    event.stopPropagation(); // 클릭 이벤트 방지
+
     if (!confirm(`"${contract.contractor_name}" 계약을 삭제하시겠습니까?`)) {
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/contracts/${contract.id}`, {
+      const response = await fetch(`${API.CONTRACTS}/${contract.id}`, {
         method: 'DELETE',
       });
 
@@ -109,7 +114,7 @@ export default function ContractListPage() {
         throw new Error(errorData.error || '삭제 실패');
       }
 
-      alert('계약이 삭제되었습니다.');
+      alert('계약이 삭제되었습니다');
       loadContracts();
 
     } catch (error) {
@@ -135,7 +140,7 @@ export default function ContractListPage() {
       {/* 메인 컨텐츠 */}
       <div className="max-w-7xl mx-auto p-6">
         {/* 필터 */}
-        <ContractFilters 
+        <ContractFilters
           filters={filters}
           onFilterChange={handleFilterChange}
           onReset={handleFilterReset}
@@ -167,8 +172,8 @@ export default function ContractListPage() {
           {/* 테이블 */}
           {loading ? (
             <div className="p-12 text-center">
-              <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" 
-                   style={{ borderColor: '#249689', borderTopColor: 'transparent' }}>
+              <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin"
+                style={{ borderColor: '#249689', borderTopColor: 'transparent' }}>
               </div>
               <p className="mt-4" style={{ color: '#6b7280', fontSize: '15px' }}>
                 로딩 중...
@@ -224,8 +229,8 @@ export default function ContractListPage() {
                 </thead>
                 <tbody>
                   {contracts.map((contract) => (
-                    <tr 
-                      key={contract.id} 
+                    <tr
+                      key={contract.id}
                       className="border-t hover:bg-gray-50"
                     >
                       <td className="px-4 py-3" style={{ fontSize: '15px' }}>
@@ -251,7 +256,7 @@ export default function ContractListPage() {
                           <button
                             onClick={() => navigate(`/contracts/${contract.id}`)}
                             className="p-2 hover:bg-gray-100 rounded"
-                            title="상세보기"
+                            title="자세보기"
                           >
                             <Eye size={18} style={{ color: '#249689' }} />
                           </button>
@@ -280,7 +285,7 @@ export default function ContractListPage() {
                 onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                 disabled={pagination.page === 1}
                 className="px-4 py-2 font-bold rounded-lg disabled:opacity-50"
-                style={{ 
+                style={{
                   backgroundColor: pagination.page === 1 ? '#e5e7eb' : '#249689',
                   color: pagination.page === 1 ? '#9ca3af' : '#ffffff',
                   fontSize: '15px'
@@ -288,7 +293,7 @@ export default function ContractListPage() {
               >
                 이전
               </button>
-              
+
               <span style={{ color: '#000000', fontSize: '15px' }} className="px-4">
                 {pagination.page} / {pagination.totalPages}
               </span>
@@ -297,7 +302,7 @@ export default function ContractListPage() {
                 onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
                 disabled={pagination.page === pagination.totalPages}
                 className="px-4 py-2 font-bold rounded-lg disabled:opacity-50"
-                style={{ 
+                style={{
                   backgroundColor: pagination.page === pagination.totalPages ? '#e5e7eb' : '#249689',
                   color: pagination.page === pagination.totalPages ? '#9ca3af' : '#ffffff',
                   fontSize: '15px'

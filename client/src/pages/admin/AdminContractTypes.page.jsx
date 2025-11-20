@@ -1,447 +1,355 @@
-import { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, Search, X, Save, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, X, Search, Check, AlertCircle } from 'lucide-react';
 import Navigation from '../../components/Navigation.component';
+import API from '../../config/api';
 
 export default function AdminContractTypesPage() {
-  const [types, setTypes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
-  const [selectedType, setSelectedType] = useState(null);
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    description: '',
-    is_active: true
-  });
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
+    const [types, setTypes] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    loadContractTypes();
-  }, []);
-
-  const loadContractTypes = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:5000/api/contract-types');
-      
-      if (!response.ok) {
-        throw new Error('계약종류 조회 실패');
-      }
-
-      const data = await response.json();
-      setTypes(data.types || []);
-
-    } catch (error) {
-      console.error('계약종류 조회 오류:', error);
-      alert('계약종류를 불러오는데 실패했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openCreateModal = () => {
-    setModalMode('create');
-    setFormData({
-      code: '',
-      name: '',
-      description: '',
-      is_active: true
+    // 모달 상태
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
+    const [selectedType, setSelectedType] = useState(null);
+    const [formData, setFormData] = useState({
+        code: '',
+        name: '',
+        description: '',
+        is_active: true
     });
-    setSelectedType(null);
-    setErrors({});
-    setShowModal(true);
-  };
+    const [errors, setErrors] = useState({});
+    const [saving, setSaving] = useState(false);
 
-  const openEditModal = (type) => {
-    setModalMode('edit');
-    setFormData({
-      code: type.code,
-      name: type.name,
-      description: type.description || '',
-      is_active: type.is_active
-    });
-    setSelectedType(type);
-    setErrors({});
-    setShowModal(true);
-  };
+    useEffect(() => {
+        loadTypes();
+    }, []);
 
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedType(null);
-    setFormData({
-      code: '',
-      name: '',
-      description: '',
-      is_active: true
-    });
-    setErrors({});
-  };
+    const loadTypes = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(API.CONTRACT_TYPES);
+            if (!response.ok) throw new Error('조회 실패');
+            const data = await response.json();
+            setTypes(data.types || []);
+        } catch (error) {
+            console.error('Error:', error);
+            alert('계약종류 목록을 불러오는데 실패했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  const validateForm = () => {
-    const newErrors = {};
+    const openCreateModal = () => {
+        setModalMode('create');
+        setFormData({
+            code: '',
+            name: '',
+            description: '',
+            is_active: true
+        });
+        setErrors({});
+        setIsModalOpen(true);
+    };
 
-    if (!formData.code.trim()) {
-      newErrors.code = '코드를 입력해주세요';
-    } else if (formData.code.length !== 1) {
-      newErrors.code = '코드는 1글자여야 합니다';
-    }
+    const openEditModal = (type) => {
+        setModalMode('edit');
+        setSelectedType(type);
+        setFormData({
+            code: type.code,
+            name: type.name,
+            description: type.description || '',
+            is_active: type.is_active
+        });
+        setErrors({});
+        setIsModalOpen(true);
+    };
 
-    if (!formData.name.trim()) {
-      newErrors.name = '이름을 입력해주세요';
-    }
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedType(null);
+    };
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    const validateForm = () => {
+        const newErrors = {};
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+        if (!formData.code.trim()) {
+            newErrors.code = '코드를 입력해주세요';
+        } else if (formData.code.length !== 1) {
+            newErrors.code = '코드는 1글자여야 합니다';
+        }
 
-    if (!validateForm()) {
-      return;
-    }
+        if (!formData.name.trim()) {
+            newErrors.name = '이름을 입력해주세요';
+        }
 
-    setSaving(true);
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
 
-    try {
-      const url = modalMode === 'create'
-        ? 'http://localhost:5000/api/contract-types'
-        : `http://localhost:5000/api/contract-types/${selectedType.id}`;
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-      const method = modalMode === 'create' ? 'POST' : 'PUT';
+        if (!validateForm()) return;
 
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+        setSaving(true);
+        try {
+            const url = modalMode === 'create'
+                ? API.CONTRACT_TYPES
+                : `${API.CONTRACT_TYPES}/${selectedType.id}`;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '저장 실패');
-      }
+            const method = modalMode === 'create' ? 'POST' : 'PUT';
 
-      alert(modalMode === 'create' ? '계약종류가 생성되었습니다.' : '계약종류가 수정되었습니다.');
-      closeModal();
-      loadContractTypes();
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
 
-    } catch (error) {
-      console.error('저장 오류:', error);
-      alert(error.message || '저장하는데 실패했습니다.');
-    } finally {
-      setSaving(false);
-    }
-  };
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || '저장 실패');
+            }
 
-  const handleDelete = async (type) => {
-    if (!confirm(`"${type.name}" 계약종류를 삭제하시겠습니까?`)) {
-      return;
-    }
+            alert(modalMode === 'create' ? '등록되었습니다.' : '수정되었습니다.');
+            closeModal();
+            loadTypes();
 
-    try {
-      const response = await fetch(`http://localhost:5000/api/contract-types/${type.id}`, {
-        method: 'DELETE',
-      });
+        } catch (error) {
+            console.error('Save error:', error);
+            alert(error.message || '저장에 실패했습니다.');
+        } finally {
+            setSaving(false);
+        }
+    };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '삭제 실패');
-      }
+    const handleDelete = async (id) => {
+        if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
 
-      alert('계약종류가 삭제되었습니다.');
-      loadContractTypes();
+        try {
+            const response = await fetch(`${API.CONTRACT_TYPES}/${id}`, {
+                method: 'DELETE',
+            });
 
-    } catch (error) {
-      console.error('삭제 오류:', error);
-      alert(error.message || '삭제하는데 실패했습니다.');
-    }
-  };
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || '삭제 실패');
+            }
 
-  const filteredTypes = types.filter(type =>
-    type.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    type.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (type.description && type.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+            alert('삭제되었습니다.');
+            loadTypes();
 
-  return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
-      {/* 네비게이션 */}
-      <Navigation />
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert(error.message || '삭제에 실패했습니다.');
+        }
+    };
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* 검색 및 추가 버튼 */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
-            {/* 검색 */}
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2" 
-                      size={20} 
-                      style={{ color: '#9ca3af' }} />
-              <input
-                type="text"
-                placeholder="코드, 이름, 설명으로 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                style={{ 
-                  borderColor: '#e5e7eb',
-                  fontSize: '15px',
-                  focusRingColor: '#249689'
-                }}
-              />
-            </div>
+    const filteredTypes = types.filter(type =>
+        type.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        type.code.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-            {/* 추가 버튼 */}
-            <button
-              onClick={openCreateModal}
-              className="flex items-center gap-2 px-6 py-2 rounded-lg font-bold text-white whitespace-nowrap hover:opacity-90 transition-opacity"
-              style={{ 
-                backgroundColor: '#249689',
-                fontSize: '15px'
-              }}
-            >
-              <Plus size={20} />
-              계약종류 추가
-            </button>
-          </div>
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <Navigation />
 
-          {/* 검색 결과 수 */}
-          <div className="mt-4 pt-4 border-t">
-            <span style={{ color: '#6b7280', fontSize: '15px' }}>
-              총 <span className="font-bold" style={{ color: '#249689' }}>{filteredTypes.length}</span>개
-            </span>
-          </div>
-        </div>
+            <div className="max-w-7xl mx-auto p-6">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">계약종류 관리</h1>
+                        <p className="text-gray-600 mt-1">계약서의 종류와 코드를 관리합니다.</p>
+                    </div>
+                    <button
+                        onClick={openCreateModal}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+                        style={{ backgroundColor: '#249689' }}
+                    >
+                        <Plus size={20} />
+                        새 계약종류 등록
+                    </button>
+                </div>
 
-        {/* 계약종류 목록 */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" 
-                   style={{ borderColor: '#249689', borderTopColor: 'transparent' }}></div>
-            </div>
-          ) : filteredTypes.length === 0 ? (
-            <div className="text-center py-12">
-              <AlertCircle size={48} className="mx-auto mb-4" style={{ color: '#9ca3af' }} />
-              <p style={{ color: '#6b7280', fontSize: '15px' }}>
-                {searchTerm ? '검색 결과가 없습니다.' : '등록된 계약종류가 없습니다.'}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead style={{ backgroundColor: '#f9fafb' }}>
-                  <tr>
-                    <th className="px-6 py-4 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      코드
-                    </th>
-                    <th className="px-6 py-4 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      이름
-                    </th>
-                    <th className="px-6 py-4 text-left font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      설명
-                    </th>
-                    <th className="px-6 py-4 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      상태
-                    </th>
-                    <th className="px-6 py-4 text-center font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                      관리
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTypes.map((type, index) => (
-                    <tr key={type.id} 
-                        className="border-t hover:bg-gray-50 transition-colors"
-                        style={{ borderColor: '#e5e7eb' }}>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center justify-center w-10 h-10 rounded-full font-bold text-white"
-                              style={{ backgroundColor: '#249689', fontSize: '18px' }}>
-                          {type.code.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                          {type.name}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span style={{ color: '#6b7280', fontSize: '15px' }}>
-                          {type.description || '-'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                          type.is_active 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {type.is_active ? '활성' : '비활성'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => openEditModal(type)}
-                            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                            title="수정"
-                          >
-                            <Edit2 size={18} style={{ color: '#249689' }} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(type)}
-                            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                            title="삭제"
-                          >
-                            <Trash2 size={18} style={{ color: '#ef4444' }} />
-                          </button>
+                {/* 검색 및 필터 */}
+                <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="계약종류 이름 또는 코드 검색..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        />
+                    </div>
+                </div>
+
+                {/* 목록 테이블 */}
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                    {loading ? (
+                        <div className="p-12 text-center">
+                            <div className="inline-block w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                            <p className="mt-4 text-gray-600">로딩 중...</p>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    ) : filteredTypes.length === 0 ? (
+                        <div className="p-12 text-center text-gray-500">
+                            등록된 계약종류가 없습니다.
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">코드</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이름</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">설명</th>
+                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {filteredTypes.map((type) => (
+                                        <tr key={type.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap font-mono font-bold text-primary-600">
+                                                {type.code}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                                {type.name}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-500">
+                                                {type.description || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${type.is_active
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-gray-100 text-gray-800'
+                                                    }`}>
+                                                    {type.is_active ? '사용중' : '미사용'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                <div className="flex justify-center gap-2">
+                                                    <button
+                                                        onClick={() => openEditModal(type)}
+                                                        className="p-1 text-gray-400 hover:text-primary-600 transition-colors"
+                                                        title="수정"
+                                                    >
+                                                        <Edit2 size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(type.id)}
+                                                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                                        title="삭제"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
-          )}
+
+            {/* 생성/수정 모달 */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-gray-900">
+                                {modalMode === 'create' ? '새 계약종류 등록' : '계약종류 수정'}
+                            </h2>
+                            <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    코드 <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    maxLength={1}
+                                    value={formData.code}
+                                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                    disabled={modalMode === 'edit'}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.code ? 'border-red-500' : 'border-gray-300'
+                                        } ${modalMode === 'edit' ? 'bg-gray-100' : ''}`}
+                                    placeholder="A"
+                                />
+                                {errors.code && <p className="mt-1 text-sm text-red-500">{errors.code}</p>}
+                                <p className="mt-1 text-xs text-gray-500">영문 대문자 1글자 (예: A, B, C)</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    이름 <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                    placeholder="예: 일반투자계약"
+                                />
+                                {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    설명
+                                </label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    rows="3"
+                                    placeholder="계약종류에 대한 설명..."
+                                />
+                            </div>
+
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="is_active"
+                                    checked={formData.is_active}
+                                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                                />
+                                <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+                                    사용 가능
+                                </label>
+                            </div>
+
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={closeModal}
+                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                                >
+                                    취소
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
+                                    style={{ backgroundColor: '#249689' }}
+                                >
+                                    {saving ? '저장 중...' : (modalMode === 'create' ? '등록' : '수정')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
-      </div>
-
-      {/* 모달 */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            {/* 모달 헤더 */}
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="font-bold" style={{ color: '#000000', fontSize: '18px' }}>
-                {modalMode === 'create' ? '계약종류 추가' : '계약종류 수정'}
-              </h2>
-              <button
-                onClick={closeModal}
-                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <X size={20} style={{ color: '#6b7280' }} />
-              </button>
-            </div>
-
-            {/* 모달 내용 */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* 코드 */}
-              <div>
-                <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                  코드 <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  maxLength={1}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ 
-                    borderColor: errors.code ? '#ef4444' : '#e5e7eb',
-                    fontSize: '15px'
-                  }}
-                  placeholder="p, c, l, o, m, a, t 중 1글자"
-                  disabled={modalMode === 'edit'}
-                />
-                {errors.code && (
-                  <p className="mt-1" style={{ color: '#ef4444', fontSize: '13px' }}>
-                    {errors.code}
-                  </p>
-                )}
-              </div>
-
-              {/* 이름 */}
-              <div>
-                <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                  이름 <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ 
-                    borderColor: errors.name ? '#ef4444' : '#e5e7eb',
-                    fontSize: '15px'
-                  }}
-                  placeholder="사과나무, COOP, LAS COOP 등"
-                />
-                {errors.name && (
-                  <p className="mt-1" style={{ color: '#ef4444', fontSize: '13px' }}>
-                    {errors.name}
-                  </p>
-                )}
-              </div>
-
-              {/* 설명 */}
-              <div>
-                <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                  설명
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ 
-                    borderColor: '#e5e7eb',
-                    fontSize: '15px'
-                  }}
-                  placeholder="계약종류에 대한 설명을 입력하세요"
-                />
-              </div>
-
-              {/* 활성화 여부 */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-5 h-5 rounded"
-                  style={{ accentColor: '#249689' }}
-                />
-                <label htmlFor="is_active" className="font-bold" style={{ color: '#000000', fontSize: '15px' }}>
-                  활성화
-                </label>
-              </div>
-
-              {/* 버튼 */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="flex-1 px-4 py-2 border rounded-lg font-bold hover:bg-gray-50 transition-colors"
-                  style={{ 
-                    borderColor: '#e5e7eb',
-                    color: '#6b7280',
-                    fontSize: '15px'
-                  }}
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 rounded-lg font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-                  style={{ 
-                    backgroundColor: '#249689',
-                    fontSize: '15px'
-                  }}
-                >
-                  {saving ? '저장 중...' : (modalMode === 'create' ? '추가' : '수정')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    );
 }

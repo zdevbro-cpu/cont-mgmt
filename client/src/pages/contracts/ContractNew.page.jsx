@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Upload, Loader, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import Navigation from '../../components/Navigation.component';
 
 export default function ContractNewPage() {
@@ -26,11 +26,6 @@ export default function ContractNewPage() {
     first_payment: '',
     memo: ''
   });
-  const [fieldConfidence, setFieldConfidence] = useState({});
-  const [pdfFile, setPdfFile] = useState(null);
-  const [parsing, setParsing] = useState(false);
-  const [parseComplete, setParseComplete] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -173,12 +168,14 @@ export default function ContractNewPage() {
   const handleAmountChange = (value) => {
     const newFormData = { ...formData, amount: value };
 
-    // 템플릿이 선택되어 있고 지급액/Unit이 있으면 투자수익금 자동 계산
-    if (selectedTemplate && selectedTemplate.monthly_payment_amount && value) {
+    // 템플릿이 선택되어 있으면 투자수익금 자동 계산
+    if (selectedTemplate && value) {
       // 템플릿의 unit_amount를 사용, 없으면 기본값 10000000 (1천만원)
       const unitAmount = selectedTemplate.unit_amount || 10000000;
+      const paymentPerUnit = selectedTemplate.monthly_payment_amount || 0;
       const units = parseInt(value) / unitAmount;
-      const calculatedPayment = Math.round(selectedTemplate.monthly_payment_amount * units);
+      const calculatedPayment = Math.round(paymentPerUnit * units);
+      
       newFormData.monthly_payment = calculatedPayment;
       
       // 템플릿의 기타지원금 자동 적용
@@ -188,6 +185,18 @@ export default function ContractNewPage() {
       // 월 지급총액 = 투자수익금 + 기타지원금
       const totalAmount = calculatedPayment + templateOtherSupport;
       newFormData.total_monthly_payment = totalAmount;
+
+      // 첫지급일 자동 계산
+      if (selectedTemplate.first_payment_months && newFormData.contract_date) {
+        const [year, month, day] = newFormData.contract_date.split('-').map(Number);
+        const firstPaymentDate = new Date(year, month - 1, day);
+        firstPaymentDate.setMonth(firstPaymentDate.getMonth() + selectedTemplate.first_payment_months);
+        
+        const fpYear = firstPaymentDate.getFullYear();
+        const fpMonth = String(firstPaymentDate.getMonth() + 1).padStart(2, '0');
+        const fpDay = String(firstPaymentDate.getDate()).padStart(2, '0');
+        newFormData.first_payment = `${fpYear}-${fpMonth}-${fpDay}`;
+      }
     } else {
       // 템플릿이 없으면 월지급총액 계산
       const mp = parseInt(newFormData.monthly_payment) || 0;
@@ -209,174 +218,10 @@ export default function ContractNewPage() {
     setFormData(newFormData);
   };
 
-  const handlePDFUpload = async (file) => {
-    if (!file) return;
 
-    setPdfFile(file);
-    setParsing(true);
-    setParseComplete(false);
 
-    const formDataToSend = new FormData();
-    formDataToSend.append('pdf', file);
 
-    try {
-      const response = await fetch('http://localhost:5000/api/contracts/parse-pdf', {
-        method: 'POST',
-        body: formDataToSend
-      });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'PDF 파싱 실패');
-      }
-
-      // 파싱 결과를 폼에 자동 입력
-      const parsedData = result.data;
-      const newFormData = { ...formData };
-      const newConfidence = {};
-
-      // 매핑 (파싱 결과 → 폼 필드)
-      const fieldMapping = {
-        '계약종류': 'contract_type_name',
-        '계약자명': 'contractor_name',
-        '계약일': 'contract_date',
-        '계약종료일': 'contract_end_date',
-        '연락처': 'phone_number',
-        '주소': 'address',
-        '이메일': 'email',
-        '은행명': 'recipient_bank',
-        '계좌번호': 'recipient_account',
-        '투자금액': 'amount',
-        '매월지급액': 'monthly_payment'
-      };
-
-      Object.keys(fieldMapping).forEach(koreanKey => {
-        const englishKey = fieldMapping[koreanKey];
-        const parsedValue = parsedData[koreanKey];
-
-        if (parsedValue && parsedValue.value) {
-          newFormData[englishKey] = parsedValue.value;
-          newConfidence[englishKey] = parsedValue.confidence;
-        }
-      });
-
-      // 계약종류명으로 contract_type_id 찾기
-      if (newFormData.contract_type_name) {
-        const parsedTypeName = newFormData.contract_type_name.toLowerCase();
-        
-        // 정확한 매칭 시도
-        let matchedType = contractTypes.find(
-          type => type.name.toLowerCase() === parsedTypeName || 
-                  type.code.toLowerCase() === parsedTypeName
-        );
-        
-        // 부분 매칭 시도 (정확한 매칭 실패 시)
-        if (!matchedType) {
-          matchedType = contractTypes.find(type => 
-            parsedTypeName.includes(type.name.toLowerCase()) ||
-            parsedTypeName.includes(type.code.toLowerCase()) ||
-            type.name.toLowerCase().includes(parsedTypeName) ||
-            type.code.toLowerCase().includes(parsedTypeName)
-          );
-        }
-        
-        if (matchedType) {
-          newFormData.contract_type_id = matchedType.id;
-          newConfidence.contract_type_id = 90;
-        } else {
-        }
-        
-        delete newFormData.contract_type_name; // 임시 필드 삭제
-      }
-
-      setFormData(newFormData);
-      setFieldConfidence(newConfidence);
-      setParseComplete(true);
-      
-      // 계약종류가 설정되었으면 템플릿 자동 로드
-      if (newFormData.contract_type_id) {
-        loadTemplates(newFormData.contract_type_id);
-      }
-      
-      alert('PDF 파싱이 완료되었습니다. 자동 입력된 내용을 확인해주세요.');
-
-    } catch (error) {
-      alert('PDF 파싱에 실패했습니다: ' + error.message);
-    } finally {
-      setParsing(false);
-    }
-  };
-
-  const getFieldStyle = (fieldName) => {
-    const confidence = fieldConfidence[fieldName];
-    if (!confidence) return {};
-
-    if (confidence >= 85) {
-      return { borderColor: '#10b981', backgroundColor: '#f0fdf4' }; // 초록
-    } else if (confidence >= 60) {
-      return { borderColor: '#f59e0b', backgroundColor: '#fffbeb' }; // 노랑
-    } else {
-      return { borderColor: '#ef4444', backgroundColor: '#fef2f2' }; // 빨강
-    }
-  };
-
-  const getConfidenceBadge = (fieldName) => {
-    const confidence = fieldConfidence[fieldName];
-    if (!confidence) return null;
-
-    if (confidence >= 85) {
-      return (
-        <span className="flex items-center gap-1 text-xs" style={{ color: '#10b981' }}>
-          <CheckCircle size={14} /> {confidence}%
-        </span>
-      );
-    } else if (confidence >= 60) {
-      return (
-        <span className="flex items-center gap-1 text-xs" style={{ color: '#f59e0b' }}>
-          <AlertCircle size={14} /> {confidence}% - 확인 필요
-        </span>
-      );
-    } else {
-      return (
-        <span className="flex items-center gap-1 text-xs" style={{ color: '#ef4444' }}>
-          <AlertCircle size={14} /> {confidence}% - 필수 확인
-        </span>
-      );
-    }
-  };
-
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.type === 'application/pdf') {
-        handlePDFUpload(file);
-      } else {
-        alert('PDF 파일만 업로드 가능합니다.');
-      }
-    }
-  };
-
-  const handleFileInput = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      handlePDFUpload(file);
-    }
-  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -444,61 +289,8 @@ export default function ContractNewPage() {
           <h1 className="font-bold" style={{ color: '#115e59', fontSize: '28px' }}>
             계약서 등록
           </h1>
-          <p className="mt-2" style={{ color: '#6b7280', fontSize: '15px' }}>
-            PDF 파일을 업로드하면 자동으로 정보를 추출합니다
-          </p>
         </div>
 
-        {/* PDF 업로드 */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h2 className="font-bold mb-3" style={{ color: '#115e59', fontSize: '18px' }}>
-            📄 PDF 파일 업로드
-          </h2>
-
-          <label 
-            className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            style={{
-              borderColor: dragActive ? '#249689' : '#d1d5db',
-              backgroundColor: dragActive ? '#f0fdfa' : 'transparent'
-            }}
-          >
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileInput}
-              disabled={parsing}
-              className="hidden"
-            />
-            
-            {parsing ? (
-              <div className="flex flex-col items-center">
-                <Loader className="animate-spin mb-2" size={32} style={{ color: '#249689' }} />
-                <span style={{ color: '#6b7280', fontSize: '15px' }}>PDF 분석 중...</span>
-              </div>
-            ) : pdfFile ? (
-              <div className="flex flex-col items-center">
-                <FileText size={32} style={{ color: '#249689' }} className="mb-2" />
-                <span style={{ color: '#115e59', fontSize: '15px' }}>{pdfFile.name}</span>
-                {parseComplete && (
-                  <span className="flex items-center gap-1 mt-2" style={{ color: '#10b981', fontSize: '14px' }}>
-                    <CheckCircle size={16} /> 파싱 완료
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center">
-                <Upload size={32} style={{ color: dragActive ? '#249689' : '#9ca3af' }} className="mb-2" />
-                <span className="font-bold" style={{ color: dragActive ? '#249689' : '#6b7280', fontSize: '15px' }}>
-                  {dragActive ? 'PDF 파일을 놓아주세요' : '클릭하거나 PDF 파일을 드래그하세요'}
-                </span>
-              </div>
-            )}
-          </label>
-        </div>
 
         {/* 계약 정보 폼 */}
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-5 space-y-4">
@@ -513,15 +305,13 @@ export default function ContractNewPage() {
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                   계약종류 <span style={{ color: '#ef4444' }}>*</span>
                 </span>
-                {getConfidenceBadge('contract_type_id')}
               </label>
               <select
                 value={formData.contract_type_id}
                 onChange={handleContractTypeChange}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                 style={{ 
-                  ...getFieldStyle('contract_type_id'),
-                  borderColor: errors.contract_type_id ? '#ef4444' : (getFieldStyle('contract_type_id').borderColor || '#e5e7eb'),
+                  borderColor: errors.contract_type_id ? '#ef4444' : '#e5e7eb',
                   fontSize: '15px'
                 }}
               >
@@ -530,47 +320,41 @@ export default function ContractNewPage() {
                   <option key={type.id} value={type.id}>{type.name}</option>
                 ))}
               </select>
-              {parseComplete && fieldConfidence.contract_type_id && (
-                <p className="text-xs mt-1" style={{ color: '#10b981' }}>
-                  ✓ PDF에서 자동 추출됨
-                </p>
-              )}
             </div>
 
             {/* 시행일 선택 */}
-            {formData.contract_type_id && (
-              <div>
-                <label className="block mb-2 font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
-                  시행일 선택
-                </label>
-                {templates.length > 0 ? (
-                  <>
-                    <select
-                      value={selectedTemplate?.id || ''}
-                      onChange={handleTemplateSelect}
-                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                      style={{ fontSize: '15px' }}
-                    >
-                      <option value="">시행일을 선택하세요</option>
-                      {templates.map(template => (
-                        <option key={template.id} value={template.id}>
-                          {template.effective_date}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedTemplate && (
-                      <p className="text-xs mt-1" style={{ color: '#10b981' }}>
-                        ✓ 선택한 시행일의 계약 조건이 자동으로 적용되었습니다
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm py-2" style={{ color: '#6b7280' }}>
-                    선택 가능한 시행일이 없습니다
-                  </p>
-                )}
-              </div>
-            )}
+            <div>
+              <label className="block mb-2 font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
+                시행일 선택
+              </label>
+              {templates.length > 0 ? (
+                <>
+                  <select
+                    value={selectedTemplate?.id || ''}
+                    onChange={handleTemplateSelect}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
+                    style={{ fontSize: '15px' }}
+                    disabled={!formData.contract_type_id}
+                  >
+                    <option value="">시행일을 선택하세요</option>
+                    {templates.map(template => (
+                      <option key={template.id} value={template.id}>
+                        {template.effective_date}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedTemplate && (
+                    <p className="text-xs mt-1" style={{ color: '#10b981' }}>
+                      ✓ 선택한 시행일의 계약 조건이 자동으로 적용되었습니다
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm py-2" style={{ color: '#6b7280' }}>
+                  {formData.contract_type_id ? '선택 가능한 시행일이 없습니다' : '먼저 계약종류를 선택하세요'}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* 계약일 / 계약종료일 */}
@@ -580,7 +364,6 @@ export default function ContractNewPage() {
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                   계약일 <span style={{ color: '#ef4444' }}>*</span>
                 </span>
-                {getConfidenceBadge('contract_date')}
               </label>
               <input
                 type="date"
@@ -588,7 +371,6 @@ export default function ContractNewPage() {
                 onChange={handleContractDateChange}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                 style={{ 
-                  ...getFieldStyle('contract_date'),
                   fontSize: '15px'
                 }}
               />
@@ -599,7 +381,6 @@ export default function ContractNewPage() {
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                   계약종료일
                 </span>
-                {getConfidenceBadge('contract_end_date')}
               </label>
               <input
                 type="date"
@@ -607,7 +388,6 @@ export default function ContractNewPage() {
                 onChange={(e) => setFormData({ ...formData, contract_end_date: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                 style={{ 
-                  ...getFieldStyle('contract_end_date'),
                   fontSize: '15px'
                 }}
               />
@@ -621,7 +401,6 @@ export default function ContractNewPage() {
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                   계약자명 <span style={{ color: '#ef4444' }}>*</span>
                 </span>
-                {getConfidenceBadge('contractor_name')}
               </label>
               <input
                 type="text"
@@ -629,7 +408,6 @@ export default function ContractNewPage() {
                 onChange={(e) => setFormData({ ...formData, contractor_name: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                 style={{ 
-                  ...getFieldStyle('contractor_name'),
                   fontSize: '15px'
                 }}
                 placeholder="홍길동"
@@ -641,15 +419,23 @@ export default function ContractNewPage() {
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                   연락처
                 </span>
-                {getConfidenceBadge('phone_number')}
               </label>
               <input
                 type="tel"
                 value={formData.phone_number}
-                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                onChange={(e) => {
+                  let value = e.target.value.replace(/[^0-9]/g, '');
+                  if (value.length <= 11) {
+                    if (value.length > 3 && value.length <= 7) {
+                      value = value.slice(0, 3) + '-' + value.slice(3);
+                    } else if (value.length > 7) {
+                      value = value.slice(0, 3) + '-' + value.slice(3, 7) + '-' + value.slice(7);
+                    }
+                    setFormData({ ...formData, phone_number: value });
+                  }
+                }}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                 style={{ 
-                  ...getFieldStyle('phone_number'),
                   fontSize: '15px'
                 }}
                 placeholder="010-1234-5678"
@@ -661,7 +447,6 @@ export default function ContractNewPage() {
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                   이메일
                 </span>
-                {getConfidenceBadge('email')}
               </label>
               <input
                 type="email"
@@ -669,7 +454,6 @@ export default function ContractNewPage() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                 style={{ 
-                  ...getFieldStyle('email'),
                   fontSize: '15px'
                 }}
                 placeholder="example@email.com"
@@ -683,7 +467,6 @@ export default function ContractNewPage() {
               <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                 주소
               </span>
-              {getConfidenceBadge('address')}
             </label>
             <input
               type="text"
@@ -691,7 +474,6 @@ export default function ContractNewPage() {
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
               style={{ 
-                ...getFieldStyle('address'),
                 fontSize: '15px'
               }}
               placeholder="서울시 강남구..."
@@ -705,7 +487,6 @@ export default function ContractNewPage() {
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                   은행명
                 </span>
-                {getConfidenceBadge('recipient_bank')}
               </label>
               <input
                 type="text"
@@ -713,7 +494,6 @@ export default function ContractNewPage() {
                 onChange={(e) => setFormData({ ...formData, recipient_bank: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                 style={{ 
-                  ...getFieldStyle('recipient_bank'),
                   fontSize: '15px'
                 }}
                 placeholder="신한은행"
@@ -725,7 +505,6 @@ export default function ContractNewPage() {
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                   계좌번호
                 </span>
-                {getConfidenceBadge('recipient_account')}
               </label>
               <input
                 type="text"
@@ -733,7 +512,6 @@ export default function ContractNewPage() {
                 onChange={(e) => setFormData({ ...formData, recipient_account: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                 style={{ 
-                  ...getFieldStyle('recipient_account'),
                   fontSize: '15px'
                 }}
                 placeholder="110-123-456789"
@@ -762,7 +540,6 @@ export default function ContractNewPage() {
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                   투자금액
                 </span>
-                {getConfidenceBadge('amount')}
               </label>
               <div className="relative">
                 <input
@@ -770,18 +547,28 @@ export default function ContractNewPage() {
                   value={formData.amount ? parseInt(formData.amount).toLocaleString() : ''}
                   onChange={(e) => {
                     const value = e.target.value.replace(/,/g, '');
-                    if (!isNaN(value)) {
+                    if (!isNaN(value) || value === '') {
+                      setFormData({ ...formData, amount: value });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const value = e.target.value.replace(/,/g, '');
+                    if (value && selectedTemplate) {
+                      const unitAmount = selectedTemplate.unit_amount || 10000000;
+                      if (parseInt(value) < unitAmount) {
+                        alert(`최소투자단위는 ${unitAmount.toLocaleString()}원 입니다.`);
+                        return;
+                      }
                       handleAmountChange(value);
                     }
                   }}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                   style={{ 
-                    ...getFieldStyle('amount'),
                     fontSize: '15px',
                     textAlign: 'right',
                     paddingRight: '40px'
                   }}
-                  placeholder="20,000,000"
+                  placeholder="30,000,000"
                 />
                 <span className="absolute right-3 top-1/2 transform -translate-y-1/2" style={{ color: '#6b7280', fontSize: '15px' }}>
                   원
@@ -810,7 +597,6 @@ export default function ContractNewPage() {
                 <span className="font-bold" style={{ color: '#115e59', fontSize: '15px' }}>
                   투자수익금
                 </span>
-                {getConfidenceBadge('monthly_payment')}
               </label>
               <div className="relative">
                 <input
@@ -830,7 +616,6 @@ export default function ContractNewPage() {
                   }}
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2"
                   style={{ 
-                    ...getFieldStyle('monthly_payment'),
                     fontSize: '15px',
                     textAlign: 'right',
                     paddingRight: '40px'
