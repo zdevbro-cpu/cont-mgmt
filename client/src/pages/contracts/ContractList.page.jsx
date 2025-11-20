@@ -48,15 +48,18 @@ export default function ContractListPage() {
         }
       }
 
+      console.log('Fetching contracts from:', `${API.CONTRACTS}?${params}`);
       const response = await fetch(`${API.CONTRACTS}?${params}`);
-      
+
       if (!response.ok) {
-        throw new Error('목록 조회 실패');
+        const errorText = await response.text();
+        console.error('Server response error:', response.status, errorText);
+        throw new Error(`목록 조회 실패: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       setContracts(data.contracts || []);
-      
+
       if (data.pagination) {
         setPagination({
           page: data.pagination.page || 1,
@@ -67,7 +70,8 @@ export default function ContractListPage() {
       }
 
     } catch (error) {
-      alert('계약서 목록을 불러오는데 실패했습니다.');
+      console.error('Contract fetch error details:', error);
+      alert('계약서 목록을 불러오는데 실패했습니다. (콘솔 확인)');
       setContracts([]);
     } finally {
       setLoading(false);
@@ -95,7 +99,7 @@ export default function ContractListPage() {
 
   const handleDelete = async (contract, event) => {
     event.stopPropagation(); // 클릭 이벤트 방지
-    
+
     if (!confirm(`"${contract.contractor_name}" 계약을 삭제하시겠습니까?`)) {
       return;
     }
@@ -136,7 +140,7 @@ export default function ContractListPage() {
       {/* 메인 컨텐츠 */}
       <div className="max-w-7xl mx-auto p-6">
         {/* 필터 */}
-        <ContractFilters 
+        <ContractFilters
           filters={filters}
           onFilterChange={handleFilterChange}
           onReset={handleFilterReset}
@@ -168,8 +172,8 @@ export default function ContractListPage() {
           {/* 테이블 */}
           {loading ? (
             <div className="p-12 text-center">
-              <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" 
-                   style={{ borderColor: '#249689', borderTopColor: 'transparent' }}>
+              <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin"
+                style={{ borderColor: '#249689', borderTopColor: 'transparent' }}>
               </div>
               <p className="mt-4" style={{ color: '#6b7280', fontSize: '15px' }}>
                 로딩 중...
@@ -225,8 +229,8 @@ export default function ContractListPage() {
                 </thead>
                 <tbody>
                   {contracts.map((contract) => (
-                    <tr 
-                      key={contract.id} 
+                    <tr
+                      key={contract.id}
                       className="border-t hover:bg-gray-50"
                     >
                       <td className="px-4 py-3" style={{ fontSize: '15px' }}>
@@ -281,7 +285,7 @@ export default function ContractListPage() {
                 onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                 disabled={pagination.page === 1}
                 className="px-4 py-2 font-bold rounded-lg disabled:opacity-50"
-                style={{ 
+                style={{
                   backgroundColor: pagination.page === 1 ? '#e5e7eb' : '#249689',
                   color: pagination.page === 1 ? '#9ca3af' : '#ffffff',
                   fontSize: '15px'
@@ -289,7 +293,7 @@ export default function ContractListPage() {
               >
                 이전
               </button>
-              
+
               <span style={{ color: '#000000', fontSize: '15px' }} className="px-4">
                 {pagination.page} / {pagination.totalPages}
               </span>
@@ -298,7 +302,7 @@ export default function ContractListPage() {
                 onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
                 disabled={pagination.page === pagination.totalPages}
                 className="px-4 py-2 font-bold rounded-lg disabled:opacity-50"
-                style={{ 
+                style={{
                   backgroundColor: pagination.page === pagination.totalPages ? '#e5e7eb' : '#249689',
                   color: pagination.page === pagination.totalPages ? '#9ca3af' : '#ffffff',
                   fontSize: '15px'

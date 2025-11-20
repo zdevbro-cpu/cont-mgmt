@@ -7,8 +7,8 @@ import ContractListPage from './pages/contracts/ContractList.page';
 import ContractNewPage from './pages/contracts/ContractNew.page';
 import ContractDetailPage from './pages/contracts/ContractDetail.page';
 import PaymentDashboardPage from './pages/payments/PaymentDashboard.page';
-import AdminContractTypesPage from './pages/admin/AdminContractTypes.page.jsx';
-import AdminUsersPage from './pages/admin/AdminUsers.page.jsx';
+import AdminContractTypesPage from './pages/admin/AdminContractTypes.page';
+import AdminUsersPage from './pages/admin/AdminUsers.page';
 import AdminContractTemplates from './pages/AdminContractTemplates.page';
 
 
@@ -22,9 +22,9 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/admin/templates" element={<AdminContractTemplates />} />
-          
+
           <Route path="/" element={<Navigate to="/login" replace />} />
-          
+
           {/* 보호된 페이지 */}
           <Route path="/contracts" element={
             <ProtectedRoute>
@@ -46,7 +46,7 @@ function App() {
               <PaymentDashboardPage />
             </ProtectedRoute>
           } />
-          
+
           {/* 관리자 페이지 */}
           <Route path="/admin/contract-types" element={
             <ProtectedRoute requireAdmin>

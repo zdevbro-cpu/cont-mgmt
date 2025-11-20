@@ -56,8 +56,11 @@ router.get('/', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('계약 목록 조회 오류:', error);
-    res.status(500).json({ error: '목록 조회 실패' });
+    console.error('계약 목록 조회 오류 상세:', error);
+    res.status(500).json({
+      error: '목록 조회 실패',
+      details: error.message
+    });
   }
 });
 

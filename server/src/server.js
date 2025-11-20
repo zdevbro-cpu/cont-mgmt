@@ -6,29 +6,53 @@ import { createClient } from '@supabase/supabase-js';
 
 // 라우트 import
 import authRoutes from './routes/auth.route.js';
-import contractsRoutes from './routes/contracts.route.js'; 
+import contractsRoutes from './routes/contracts.route.js';
 import paymentRoutes from './routes/payment.route.js';
 import contractTypesRoutes from './routes/contract-types.route.js';
 import usersRoutes from './routes/users.route.js';
 import contractTemplatesRouter from './routes/contract-templates.route.js';
 
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// .env 파일 경로 명시적 지정 (server/.env)
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
+console.log('Current working directory:', process.cwd());
+console.log('Supabase URL set:', !!process.env.SUPABASE_URL);
+console.log('Supabase Key set:', !!process.env.SUPABASE_SERVICE_KEY);
+
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+  console.error('CRITICAL: Supabase credentials missing!');
+}
 
 const app = express();
-
 
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:5173',
+      'http://localhost:3000'
+    ].filter(Boolean); // Remove undefined/null values
+
+    // !origin allows requests from non-browser clients (like Postman or curl)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('Blocked by CORS:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/api/contract-types', contractTypesRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/contract-templates', contractTemplatesRouter);
-
 
 // Supabase 클라이언트를 req에 추가
 app.use((req, res, next) => {
@@ -47,6 +71,7 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       auth: '/api/auth',
+      contracts: '/api/contracts',
       payments: '/api/payments',
       contractTypes: '/api/contract-types',
       users: '/api/users'
@@ -61,10 +86,11 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/contracts', contractsRoutes); 
+app.use('/api/contracts', contractsRoutes);
 app.use('/api/payments', paymentRoutes);
-// app.use('/api/schedule', scheduleRoutes);  // 필요시 추가
-// app.use('/api/admin', adminRoutes);        // 필요시 추가
+app.use('/api/contract-types', contractTypesRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/contract-templates', contractTemplatesRouter);
 
 // Error Handler
 app.use((err, req, res, next) => {
