@@ -1,12 +1,11 @@
 import express from 'express';
-import { supabase } from '../config/supabase.js';
 
 const router = express.Router();
 
 // 계약종류 목록 조회
 router.get('/', async (req, res) => {
   try {
-    const { data: types, error } = await supabase
+    const { data: types, error } = await req.supabase
       .from('contract_types')
       .select('*')
       .order('code', { ascending: true });
@@ -36,7 +35,7 @@ router.post('/', async (req, res) => {
     }
 
     // 중복 코드 확인
-    const { data: existing } = await supabase
+    const { data: existing } = await req.supabase
       .from('contract_types')
       .select('id')
       .eq('code', code)
@@ -47,7 +46,7 @@ router.post('/', async (req, res) => {
     }
 
     // 생성
-    const { data: newType, error } = await supabase
+    const { data: newType, error } = await req.supabase
       .from('contract_types')
       .insert([
         {
@@ -82,7 +81,7 @@ router.put('/:id', async (req, res) => {
     }
 
     // 수정
-    const { data: updatedType, error } = await supabase
+    const { data: updatedType, error } = await req.supabase
       .from('contract_types')
       .update({
         name,
@@ -113,20 +112,20 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
 
     // 해당 계약종류를 사용하는 계약이 있는지 확인
-    const { data: contracts } = await supabase
+    const { data: contracts } = await req.supabase
       .from('contracts')
       .select('id')
       .eq('contract_type_id', id)
       .limit(1);
 
     if (contracts && contracts.length > 0) {
-      return res.status(400).json({ 
-        error: '이 계약종류를 사용하는 계약이 있어 삭제할 수 없습니다' 
+      return res.status(400).json({
+        error: '이 계약종류를 사용하는 계약이 있어 삭제할 수 없습니다'
       });
     }
 
     // 삭제
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('contract_types')
       .delete()
       .eq('id', id);

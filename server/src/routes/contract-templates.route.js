@@ -1,5 +1,4 @@
 import express from 'express';
-import { supabase } from '../config/supabase.js';
 
 const router = express.Router();
 
@@ -7,8 +6,8 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const { contract_type_id, is_available } = req.query;
-    
-    let query = supabase
+
+    let query = req.supabase
       .from('contract_templates')
       .select(`
         *,
@@ -47,7 +46,7 @@ router.get('/', async (req, res) => {
 // 특정 템플릿 조회
 router.get('/:id', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('contract_templates')
       .select(`
         *,
@@ -85,11 +84,15 @@ router.post('/', async (req, res) => {
       contract_period,
       first_payment_months,
       payment_interval,
+      unit_amount,
       monthly_payment_amount,
+      other_support_amount,
       required_fields,
       field_rules,
       special_conditions_template,
       template_file_url,
+      pdf_file_path,
+      memo,
       is_available,
       effective_date,
       end_date,
@@ -104,11 +107,15 @@ router.post('/', async (req, res) => {
       contract_period,
       first_payment_months,
       payment_interval,
+      unit_amount,
       monthly_payment_amount,
+      other_support_amount,
       required_fields,
       field_rules,
       special_conditions_template,
       template_file_url,
+      pdf_file_path,
+      memo,
       is_available,
       effective_date,
       created_by
@@ -119,7 +126,7 @@ router.post('/', async (req, res) => {
       insertData.end_date = end_date;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('contract_templates')
       .insert(insertData)
       .select()
@@ -128,7 +135,7 @@ router.post('/', async (req, res) => {
     if (error) throw error;
 
     // 변경 이력 기록
-    await supabase
+    await req.supabase
       .from('template_change_logs')
       .insert({
         template_id: data.id,
@@ -156,11 +163,15 @@ router.put('/:id', async (req, res) => {
       contract_period,
       first_payment_months,
       payment_interval,
+      unit_amount,
       monthly_payment_amount,
+      other_support_amount,
       required_fields,
       field_rules,
       special_conditions_template,
       template_file_url,
+      pdf_file_path,
+      memo,
       is_available,
       effective_date,
       end_date,
@@ -168,7 +179,7 @@ router.put('/:id', async (req, res) => {
     } = req.body;
 
     // 기존 데이터 조회
-    const { data: oldData } = await supabase
+    const { data: oldData } = await req.supabase
       .from('contract_templates')
       .select('*')
       .eq('id', id)
@@ -181,11 +192,15 @@ router.put('/:id', async (req, res) => {
       contract_period,
       first_payment_months,
       payment_interval,
+      unit_amount,
       monthly_payment_amount,
+      other_support_amount,
       required_fields,
       field_rules,
       special_conditions_template,
       template_file_url,
+      pdf_file_path,
+      memo,
       is_available,
       effective_date,
       updated_at: new Date().toISOString()
@@ -197,7 +212,7 @@ router.put('/:id', async (req, res) => {
     }
 
     // 템플릿 수정
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('contract_templates')
       .update(updateData)
       .eq('id', id)
@@ -207,7 +222,7 @@ router.put('/:id', async (req, res) => {
     if (error) throw error;
 
     // 변경 이력 기록
-    await supabase
+    await req.supabase
       .from('template_change_logs')
       .insert({
         template_id: id,
@@ -231,7 +246,7 @@ router.patch('/:id/availability', async (req, res) => {
     const { id } = req.params;
     const { is_available, changed_by } = req.body;
 
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('contract_templates')
       .update({
         is_available,
@@ -244,7 +259,7 @@ router.patch('/:id/availability', async (req, res) => {
     if (error) throw error;
 
     // 변경 이력 기록
-    await supabase
+    await req.supabase
       .from('template_change_logs')
       .insert({
         template_id: id,
@@ -268,14 +283,14 @@ router.delete('/:id', async (req, res) => {
     const { changed_by } = req.body;
 
     // 기존 데이터 조회
-    const { data: oldData } = await supabase
+    const { data: oldData } = await req.supabase
       .from('contract_templates')
       .select('*')
       .eq('id', id)
       .single();
 
     // 변경 이력 기록
-    await supabase
+    await req.supabase
       .from('template_change_logs')
       .insert({
         template_id: id,
@@ -286,7 +301,7 @@ router.delete('/:id', async (req, res) => {
       });
 
     // 템플릿 삭제
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('contract_templates')
       .delete()
       .eq('id', id);

@@ -34,8 +34,6 @@ router.get('/today', async (req, res) => {
 
     if (error) throw error;
 
-    console.log(`✅ 오늘 지급 목록: ${payments?.length}건`);
-
     res.json({
       success: true,
       date: today,
@@ -45,7 +43,6 @@ router.get('/today', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('오늘 지급 목록 오류:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -79,8 +76,6 @@ router.get('/upcoming', async (req, res) => {
 
     if (error) throw error;
 
-    console.log(`✅ 7일 이내 지급: ${payments?.length}건`);
-
     res.json({
       success: true,
       start_date: today,
@@ -91,7 +86,6 @@ router.get('/upcoming', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('다가오는 지급 목록 오류:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -123,7 +117,6 @@ router.get('/schedule/:contractId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('스케줄 조회 오류:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -161,15 +154,12 @@ router.put('/:id/status', async (req, res) => {
 
     if (error) throw error;
 
-    console.log(`✅ 지급 상태 변경: ID ${id} → ${status}`);
-
     res.json({
       success: true,
       payment: payment
     });
 
   } catch (error) {
-    console.error('상태 변경 오류:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -222,7 +212,6 @@ router.get('/monthly/:year/:month', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('월별 통계 오류:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -283,8 +272,6 @@ router.post('/export', async (req, res) => {
       메모: p.note
     })) || [];
 
-    console.log(`✅ 엑셀 다운로드 데이터: ${exportData.length}건`);
-
     res.json({
       success: true,
       data: exportData,
@@ -293,7 +280,6 @@ router.post('/export', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('데이터 추출 오류:', error);
     res.status(500).json({ error: error.message });
   }
 });

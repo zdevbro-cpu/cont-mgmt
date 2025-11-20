@@ -1,12 +1,11 @@
 import express from 'express';
-import { supabase } from '../config/supabase.js';
 
 const router = express.Router();
 
 // 사용자 목록 조회
 router.get('/', async (req, res) => {
   try {
-    const { data: users, error } = await supabase
+    const { data: users, error } = await req.supabase
       .from('profiles')
       .select('*')
       .order('created_at', { ascending: false });
@@ -29,11 +28,11 @@ router.put('/:id', async (req, res) => {
 
     // 업데이트할 필드 구성
     const updateData = {};
-    
+
     if (full_name !== undefined) {
       updateData.full_name = full_name;
     }
-    
+
     if (role !== undefined) {
       updateData.role = role;
     }
@@ -44,7 +43,7 @@ router.put('/:id', async (req, res) => {
     }
 
     // profiles 테이블 수정
-    const { data: updatedProfile, error: profileError } = await supabase
+    const { data: updatedProfile, error: profileError } = await req.supabase
       .from('profiles')
       .update(updateData)
       .eq('id', id)
@@ -77,7 +76,7 @@ router.post('/:id/reset-password', async (req, res) => {
     }
 
     // 사용자 존재 확인
-    const { data: user } = await supabase
+    const { data: user } = await req.supabase
       .from('profiles')
       .select('email')
       .eq('id', id)
@@ -94,7 +93,7 @@ router.post('/:id/reset-password', async (req, res) => {
     // });
 
     // 임시 응답 (실제 구현 필요)
-    res.json({ 
+    res.json({
       message: '비밀번호가 초기화되었습니다',
       note: '실제 환경에서는 Supabase Admin API 구현이 필요합니다'
     });
@@ -111,20 +110,20 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
 
     // 해당 사용자가 작성한 계약이 있는지 확인
-    const { data: contracts } = await supabase
+    const { data: contracts } = await req.supabase
       .from('contracts')
       .select('id')
       .eq('created_by', id)
       .limit(1);
 
     if (contracts && contracts.length > 0) {
-      return res.status(400).json({ 
-        error: '이 사용자가 작성한 계약이 있어 삭제할 수 없습니다' 
+      return res.status(400).json({
+        error: '이 사용자가 작성한 계약이 있어 삭제할 수 없습니다'
       });
     }
 
     // profiles 삭제
-    const { error: profileError } = await supabase
+    const { error: profileError } = await req.supabase
       .from('profiles')
       .delete()
       .eq('id', id);
@@ -134,7 +133,7 @@ router.delete('/:id', async (req, res) => {
     // auth.users 삭제 (Supabase Admin API 필요)
     // const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
 
-    res.json({ 
+    res.json({
       message: '사용자가 삭제되었습니다',
       note: '실제 환경에서는 auth.users 삭제도 필요합니다'
     });
