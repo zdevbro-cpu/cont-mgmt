@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Download, Check, Calendar, Users } from 'lucide-react';
 import Navigation from '../../components/Navigation.component';
+import { API } from '../../config/api';
 
 export default function PaymentDashboardPage() {
   const [upcomingPayments, setUpcomingPayments] = useState([]);
@@ -13,7 +14,7 @@ export default function PaymentDashboardPage() {
 
   const loadPayments = async () => {
     try {
-      const upcomingRes = await fetch('http://localhost:5000/api/payments/upcoming');
+      const upcomingRes = await fetch(`${API.PAYMENTS}/upcoming`);
       const upcomingData = await upcomingRes.json();
 
       setUpcomingPayments(upcomingData.payments || []);
@@ -31,7 +32,7 @@ export default function PaymentDashboardPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/payments/by-date?date=${date}`);
+      const response = await fetch(`${API.PAYMENTS}/by-date?date=${date}`);
       const data = await response.json();
       setSelectedDatePayments(data.payments || []);
     } catch (error) {
@@ -50,7 +51,7 @@ export default function PaymentDashboardPage() {
     if (!confirm('이 항목을 지급 완료로 표시하시겠습니까?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/payments/${paymentId}/status`, {
+      const response = await fetch(`${API.PAYMENTS}/${paymentId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,6 +69,7 @@ export default function PaymentDashboardPage() {
       }
 
     } catch (error) {
+      console.error('상태 변경 실패:', error);
       alert('상태 변경에 실패했습니다.');
     }
   };

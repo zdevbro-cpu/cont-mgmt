@@ -42,6 +42,8 @@ app.use(cors({
       'http://localhost:3000'
     ].filter(Boolean);
 
+    // !origin allows requests from non-browser clients (like Postman or curl)
+    // Allow specific origins OR any subdomain of vercel.app
     if (!origin || allowedOrigins.indexOf(origin) !== -1 || (origin && origin.endsWith('.vercel.app'))) {
       callback(null, true);
     } else {
