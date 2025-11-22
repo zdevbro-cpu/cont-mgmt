@@ -1,25 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Trash2, FileText } from 'lucide-react';
+import { Plus, Eye, Trash2, FileText, Download } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ContractFilters from '../../components/contracts/ContractFilters.component';
 import Navigation from '../../components/Navigation.component';
 import API from '../../config/api';
+import BulkUpload from '../../BulkUpload';
 
 export default function ContractListPage() {
   const navigate = useNavigate();
-  const { userRole } = useAuth();
+  const { userRole, isAdmin, token } = useAuth();
   const [contracts, setContracts] = useState([]);
+  const [contractTypes, setContractTypes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     startDate: '',
-    endDate: '',
-    minAmount: '',
-    maxAmount: '',
-    paymentMethod: 'all',
-    sortBy: 'created_at',
-    sortOrder: 'desc'
+    contractTypeId: 'all',
+    sortBy: 'contract_date',
+    sortOrder: 'asc'
   });
   const [pagination, setPagination] = useState({
     page: 1,
@@ -29,8 +29,23 @@ export default function ContractListPage() {
   });
 
   useEffect(() => {
+    loadContractTypes();
+  }, []);
+
+  useEffect(() => {
     loadContracts();
   }, [pagination.page, filters]);
+
+  const loadContractTypes = async () => {
+    try {
+      const response = await fetch(`${API.CONTRACT_TYPES}`);
+      if (!response.ok) throw new Error('계약 종류 조회 실패');
+      const data = await response.json();
+      setContractTypes(data.types || []);
+    } catch (error) {
+      console.error('계약 종류 조회 오류:', error);
+    }
+  };
 
   const loadContracts = async () => {
     setLoading(true);
@@ -87,12 +102,9 @@ export default function ContractListPage() {
     setFilters({
       search: '',
       startDate: '',
-      endDate: '',
-      minAmount: '',
-      maxAmount: '',
-      paymentMethod: 'all',
-      sortBy: 'created_at',
-      sortOrder: 'desc'
+      contractTypeId: 'all',
+      sortBy: 'contract_date',
+      sortOrder: 'asc'
     });
     setPagination(prev => ({ ...prev, page: 1 }));
   };
@@ -132,6 +144,9 @@ export default function ContractListPage() {
     return new Date(dateString).toLocaleDateString('ko-KR');
   };
 
+  const handleBulkOpen = () => setIsBulkOpen(true);
+  const handleBulkClose = () => setIsBulkOpen(false);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 네비게이션 */}
@@ -144,6 +159,7 @@ export default function ContractListPage() {
           filters={filters}
           onFilterChange={handleFilterChange}
           onReset={handleFilterReset}
+          contractTypes={contractTypes}
         />
 
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -158,14 +174,25 @@ export default function ContractListPage() {
                   </span>
                 )}
               </h2>
-              <button
-                onClick={() => navigate('/contracts/new')}
-                className="flex items-center gap-2 px-4 py-2 text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: '#249689', fontSize: '15px' }}
-              >
-                <Plus size={18} />
-                계약서 등록
-              </button>
+              <div className="flex gap-2">
+                {/* Bulk Upload Button - Temporarily enabled for all */}
+                <button
+                  onClick={handleBulkOpen}
+                  className="flex items-center gap-2 px-4 py-2 text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: '#1d4ed8', fontSize: '15px' }}
+                >
+                  <Download size={18} />
+                  엑셀 일괄 등록
+                </button>
+                <button
+                  onClick={() => navigate('/contracts/new')}
+                  className="flex items-center gap-2 px-4 py-2 text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: '#249689', fontSize: '15px' }}
+                >
+                  <Plus size={18} />
+                  계약서 등록
+                </button>
+              </div>
             </div>
           </div>
 
@@ -183,12 +210,12 @@ export default function ContractListPage() {
             <div className="p-12 text-center">
               <FileText size={80} style={{ color: '#d1d5db' }} className="mx-auto mb-4" />
               <h3 className="font-bold mb-2" style={{ color: '#000000', fontSize: '18px' }}>
-                {filters.search || filters.startDate || filters.minAmount ? '검색 결과가 없습니다' : '등록된 계약서가 없습니다'}
+                {filters.search || filters.startDate || (filters.contractTypeId && filters.contractTypeId !== 'all') ? '검색 결과가 없습니다' : '등록된 계약서가 없습니다'}
               </h3>
               <p className="mb-6" style={{ color: '#6b7280', fontSize: '15px' }}>
-                {filters.search || filters.startDate || filters.minAmount ? '다른 조건으로 검색해보세요' : '새 계약서를 등록하여 관리를 시작하세요'}
+                {filters.search || filters.startDate || (filters.contractTypeId && filters.contractTypeId !== 'all') ? '다른 조건으로 검색해보세요' : '새 계약서를 등록하여 관리를 시작하세요'}
               </p>
-              {!(filters.search || filters.startDate || filters.minAmount) && (
+              {!(filters.search || filters.startDate || (filters.contractTypeId && filters.contractTypeId !== 'all')) && (
                 <button
                   onClick={() => navigate('/contracts/new')}
                   className="inline-flex items-center gap-2 px-6 py-2 text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
@@ -313,6 +340,11 @@ export default function ContractListPage() {
             </div>
           )}
         </div>
+        <BulkUpload
+          isOpen={isBulkOpen}
+          onClose={handleBulkClose}
+          token={token}
+        />
       </div>
     </div>
   );

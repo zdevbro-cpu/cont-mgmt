@@ -1,287 +1,361 @@
-// ========================================
-// 지급 관리 API
-// server/src/routes/payment.route.js
-// ========================================
-
 import express from 'express';
 
 const router = express.Router();
 
-/**
- * GET /api/payments/today
- * 오늘 지급할 목록
- */
+// GET /api/payments/test - 테스트용 엔드포인트
+router.get('/test', async (req, res) => {
+    try {
+        const { data, error } = await req.supabase
+            .from('payment_schedules')
+            .select('*')
+            .limit(10);
+
+        if (error) {
+            console.error('Test endpoint error:', error);
+            return res.status(500).json({ error: error.message, details: error });
+        }
+
+        res.json({
+            message: 'Test endpoint',
+            count: data.length,
+            data: data
+        });
+    } catch (error) {
+        console.error('Test endpoint exception:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET /api/payments/today - 오늘 지급 예정 목록
 router.get('/today', async (req, res) => {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    
-    const { data: payments, error } = await req.supabase
-      .from('payment_schedules')
-      .select(`
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        console.log('🔍 Fetching today payments for date:', today);
+
+        const { data, error } = await req.supabase
+            .from('payment_schedules')
+            .select(`
         *,
-        contracts(
+        contracts (
           contract_number,
-          contract_name,
+          contract_date,
           contractor_name,
-          contract_type_name,
-          phone_number,
-          email
+          contract_types (
+            name
+          )
         )
       `)
-      .eq('scheduled_date', today)
-      .eq('payment_status', 'pending')
-      .order('scheduled_date', { ascending: true });
+            .eq('scheduled_date', today)
+            .eq('payment_status', 'pending')
+            .order('scheduled_date', { ascending: true });
 
-    if (error) throw error;
+        if (error) {
+            console.error('❌ Error fetching today payments:', error);
+            throw error;
+        }
 
-    res.json({
-      success: true,
-      date: today,
-      payments: payments || [],
-      total_amount: payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0,
-      count: payments?.length || 0
-    });
+        console.log('✅ Found payments:', data.length);
+        if (data.length > 0) {
+            console.log('Sample payment:', data[0]);
+        }
 
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+        const total_amount = data.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        res.json({
+            payments: data,
+            count: data.length,
+            total_amount
+        });
+    } catch (error) {
+        console.error('Error fetching today payments:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
-
-/**
- * GET /api/payments/upcoming
- * 다가오는 지급 목록 (7일 이내)
- */
+// GET /api/payments/upcoming - 7일 이내 지급 예정 (내일부터 7일간)
 router.get('/upcoming', async (req, res) => {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    
-    const { data: payments, error } = await req.supabase
-      .from('payment_schedules')
-      .select(`
+    try {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+
+        console.log('🔍 Fetching upcoming payments from:', tomorrow.toISOString().split('T')[0], 'to:', nextWeek.toISOString().split('T')[0]);
+
+        const { data, error } = await req.supabase
+            .from('payment_schedules')
+            .select(`
         *,
-        contracts(
+        contracts (
           contract_number,
-          contract_name,
+          contract_date,
           contractor_name,
-          contract_type_name,
-          phone_number
+          contract_types (
+            name
+          )
         )
       `)
-      .gte('scheduled_date', today)
-      .lte('scheduled_date', sevenDaysLater)
-      .eq('payment_status', 'pending')
-      .order('scheduled_date', { ascending: true });
+            .gte('scheduled_date', tomorrow.toISOString().split('T')[0])
+            .lte('scheduled_date', nextWeek.toISOString().split('T')[0])
+            .eq('payment_status', 'pending')
+            .order('scheduled_date', { ascending: true });
 
-    if (error) throw error;
+        if (error) {
+            console.error('❌ Error fetching upcoming payments:', error);
+            throw error;
+        }
 
-    res.json({
-      success: true,
-      start_date: today,
-      end_date: sevenDaysLater,
-      payments: payments || [],
-      total_amount: payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0,
-      count: payments?.length || 0
-    });
+        console.log('✅ Found upcoming payments:', data.length);
 
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+        const total_amount = data.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        res.json({
+            payments: data,
+            count: data.length,
+            total_amount
+        });
+    } catch (error) {
+        console.error('Error fetching upcoming payments:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
+// GET /api/payments/this-week - 이번 주 지급
+router.get('/this-week', async (req, res) => {
+    try {
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
 
-/**
- * GET /api/payments/schedule/:contractId
- * 특정 계약의 지급 스케줄
- */
-router.get('/schedule/:contractId', async (req, res) => {
-  try {
-    const { contractId } = req.params;
+        const { data, error } = await req.supabase
+            .from('payment_schedules')
+            .select(`
+        *,
+        contracts (
+          contract_number,
+          contract_date,
+          contractor_name,
+          contract_types (
+            name
+          )
+        )
+      `)
+            .gte('scheduled_date', monday.toISOString().split('T')[0])
+            .lte('scheduled_date', sunday.toISOString().split('T')[0])
+            .eq('payment_status', 'pending')
+            .order('scheduled_date', { ascending: true });
 
-    const { data: schedules, error } = await req.supabase
-      .from('payment_schedules')
-      .select('*')
-      .eq('contract_id', contractId)
-      .order('payment_number', { ascending: true });
+        if (error) throw error;
 
-    if (error) throw error;
+        const total_amount = data.reduce((sum, payment) => sum + (payment.amount || 0), 0);
 
-    res.json({
-      success: true,
-      contract_id: contractId,
-      schedules: schedules || [],
-      total_amount: schedules?.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0) || 0,
-      paid_count: schedules?.filter(s => s.payment_status === 'paid').length || 0,
-      pending_count: schedules?.filter(s => s.payment_status === 'pending').length || 0
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+        res.json({
+            payments: data,
+            count: data.length,
+            total_amount
+        });
+    } catch (error) {
+        console.error('Error fetching this week payments:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
+// GET /api/payments/this-month - 이번 달 지급
+router.get('/this-month', async (req, res) => {
+    try {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-/**
- * PUT /api/payments/:id/status
- * 지급 상태 변경
- */
+        const { data, error } = await req.supabase
+            .from('payment_schedules')
+            .select(`
+        *,
+        contracts (
+          contract_number,
+          contract_date,
+          contractor_name,
+          contract_types (
+            name
+          )
+        )
+      `)
+            .gte('scheduled_date', firstDay.toISOString().split('T')[0])
+            .lte('scheduled_date', lastDay.toISOString().split('T')[0])
+            .eq('payment_status', 'pending')
+            .order('scheduled_date', { ascending: true });
+
+        if (error) throw error;
+
+        const total_amount = data.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        res.json({
+            payments: data,
+            count: data.length,
+            total_amount
+        });
+    } catch (error) {
+        console.error('Error fetching this month payments:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET /api/payments/schedule/:id - 계약별 지급 스케줄 조회
+router.get('/schedule/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        console.log('📅 Fetching payment schedule for contract:', id);
+
+        const { data, error } = await req.supabase
+            .from('payment_schedules')
+            .select('*')
+            .eq('contract_id', id)
+            .order('payment_number', { ascending: true });
+
+        if (error) {
+            console.error('❌ Error fetching schedule:', error);
+            throw error;
+        }
+
+        console.log('✅ Found schedules:', data.length);
+
+        res.json({
+            schedules: data || [],
+            count: data.length
+        });
+    } catch (error) {
+        console.error('Error fetching payment schedule:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET /api/payments/by-date - 날짜별 지급 조회
+router.get('/by-date', async (req, res) => {
+    try {
+        const { date } = req.query;
+
+        if (!date) {
+            return res.status(400).json({ error: 'Date parameter is required' });
+        }
+
+        const { data, error } = await req.supabase
+            .from('payment_schedules')
+            .select(`
+        *,
+        contracts (
+          contract_number,
+          contract_date,
+          contractor_name,
+          contract_types (
+            name
+          )
+        )
+      `)
+            .eq('scheduled_date', date)
+            .eq('payment_status', 'pending')
+            .order('scheduled_date', { ascending: true });
+
+        if (error) throw error;
+
+        const total_amount = data.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        res.json({
+            payments: data,
+            count: data.length,
+            total_amount
+        });
+    } catch (error) {
+        console.error('Error fetching payments by date:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// PUT /api/payments/:id/status - 지급 상태 업데이트
 router.put('/:id/status', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, paid_date, paid_amount, note } = req.body;
+    try {
+        const { id } = req.params;
+        const { status, paid_date } = req.body;
 
-    const updateData = {
-      payment_status: status,
-      updated_at: new Date().toISOString()
-    };
+        const { data, error } = await req.supabase
+            .from('payment_schedules')
+            .update({
+                payment_status: status,
+                paid_date,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select();
 
-    if (status === 'paid') {
-      updateData.paid_date = paid_date || new Date().toISOString().split('T')[0];
-      updateData.paid_amount = paid_amount;
+        if (error) throw error;
+
+        res.json({
+            message: 'Payment status updated successfully',
+            payment: data[0]
+        });
+    } catch (error) {
+        console.error('Error updating payment status:', error);
+        res.status(500).json({ error: error.message });
     }
-
-    if (note !== undefined) {
-      updateData.note = note;
-    }
-
-    const { data: payment, error } = await req.supabase
-      .from('payment_schedules')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    res.json({
-      success: true,
-      payment: payment
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
-
-/**
- * GET /api/payments/monthly/:year/:month
- * 월별 지급 통계
- */
-router.get('/monthly/:year/:month', async (req, res) => {
-  try {
-    const { year, month } = req.params;
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0];
-
-    const { data: payments, error } = await req.supabase
-      .from('payment_schedules')
-      .select(`
-        *,
-        contracts(
-          contract_number,
-          contractor_name,
-          contract_type_name
-        )
-      `)
-      .gte('scheduled_date', startDate)
-      .lte('scheduled_date', endDate)
-      .order('scheduled_date', { ascending: true });
-
-    if (error) throw error;
-
-    // 통계 계산
-    const stats = {
-      total_scheduled: payments?.length || 0,
-      total_amount: payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0,
-      paid_count: payments?.filter(p => p.payment_status === 'paid').length || 0,
-      paid_amount: payments?.filter(p => p.payment_status === 'paid').reduce((sum, p) => sum + parseFloat(p.paid_amount || p.amount || 0), 0) || 0,
-      pending_count: payments?.filter(p => p.payment_status === 'pending').length || 0,
-      pending_amount: payments?.filter(p => p.payment_status === 'pending').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0,
-      overdue_count: payments?.filter(p => p.payment_status === 'overdue').length || 0,
-      overdue_amount: payments?.filter(p => p.payment_status === 'overdue').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0
-    };
-
-    res.json({
-      success: true,
-      year,
-      month,
-      stats,
-      payments: payments || []
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-/**
- * POST /api/payments/export
- * 엑셀 다운로드용 데이터
- */
+// POST /api/payments/export - 엑셀 다운로드용 데이터
 router.post('/export', async (req, res) => {
-  try {
-    const { date, status } = req.body;
+    try {
+        const { date, status } = req.body;
 
-    let query = req.supabase
-      .from('payment_schedules')
-      .select(`
+        let query = req.supabase
+            .from('payment_schedules')
+            .select(`
         *,
-        contracts(
+        contracts (
           contract_number,
-          contract_name,
+          contract_date,
           contractor_name,
-          contract_type_name,
-          phone_number,
-          email
+          contract_types (
+            name
+          )
         )
-      `)
-      .order('scheduled_date', { ascending: true });
+      `);
 
-    if (date) {
-      query = query.eq('scheduled_date', date);
+        if (date) {
+            query = query.eq('scheduled_date', date);
+        }
+
+        if (status) {
+            query = query.eq('payment_status', status);
+        }
+
+        const { data, error } = await query.order('scheduled_date', { ascending: true });
+
+        if (error) throw error;
+
+        // 엑셀용 데이터 포맷팅
+        const exportData = data.map(payment => ({
+            '계약번호': payment.contracts?.contract_number || '-',
+            '계약종류': payment.contracts?.contract_types?.name || '-',
+            '계약일자': payment.contracts?.contract_date || '-',
+            '계약자명': payment.contracts?.contractor_name || '-',
+            '수령자명': payment.recipient_name || '-',
+            '은행': payment.recipient_bank || '-',
+            '계좌번호': payment.recipient_account || '-',
+            '지급금액': payment.amount || 0,
+            '지급예정일': payment.scheduled_date || '-',
+            '상태': payment.payment_status === 'paid' ? '완료' : '대기'
+        }));
+
+        res.json({
+            data: exportData,
+            count: exportData.length
+        });
+    } catch (error) {
+        console.error('Error exporting payments:', error);
+        res.status(500).json({ error: error.message });
     }
-
-    if (status) {
-      query = query.eq('payment_status', status);
-    }
-
-    const { data: payments, error } = await query;
-
-    if (error) throw error;
-
-    // 엑셀용 데이터 포맷
-    const exportData = payments?.map(p => ({
-      지급일: p.scheduled_date,
-      계약번호: p.contracts?.contract_number,
-      계약명: p.contracts?.contract_name,
-      계약자명: p.contracts?.contractor_name || p.recipient_name,
-      전화번호: p.contracts?.phone_number,
-      이메일: p.contracts?.email,
-      지급금액: p.amount,
-      수령자명: p.recipient_name,
-      은행: p.recipient_bank,
-      계좌번호: p.recipient_account,
-      상태: p.payment_status === 'paid' ? '지급완료' : 
-            p.payment_status === 'pending' ? '지급대기' : 
-            p.payment_status === 'overdue' ? '연체' : '취소',
-      실제지급일: p.paid_date,
-      실제지급액: p.paid_amount,
-      메모: p.note
-    })) || [];
-
-    res.json({
-      success: true,
-      data: exportData,
-      count: exportData.length,
-      total_amount: payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
 export default router;

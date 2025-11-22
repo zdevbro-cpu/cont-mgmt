@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // 라우트 import
 import authRoutes from './routes/auth.route.js';
@@ -12,14 +14,11 @@ import contractTypesRoutes from './routes/contract-types.route.js';
 import usersRoutes from './routes/users.route.js';
 import contractTemplatesRouter from './routes/contract-templates.route.js';
 
-import path from 'path';
-import { fileURLToPath } from 'url';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// .env 파일 경로 명시적 지정 (server/.env)
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// Load environment variables from client .env.production
+dotenv.config({ path: path.join(__dirname, '../client/.env.production') });
 
 console.log('Current working directory:', process.cwd());
 console.log('Supabase URL set:', !!process.env.SUPABASE_URL);
@@ -32,17 +31,18 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" } // 정적 파일 접근 허용
+}));
 app.use(cors({
   origin: function (origin, callback) {
     const allowedOrigins = [
       process.env.FRONTEND_URL,
       'http://localhost:5173',
       'http://localhost:3000'
-    ].filter(Boolean); // Remove undefined/null values
+    ].filter(Boolean);
 
-    // !origin allows requests from non-browser clients (like Postman or curl)
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1 || (origin && origin.endsWith('.vercel.app'))) {
       callback(null, true);
     } else {
       console.log('Blocked by CORS:', origin);
@@ -53,6 +53,10 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 정적 파일 서빙 (업로드된 파일)
+// server/uploads 디렉토리를 /uploads 경로로 서빙
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Supabase 클라이언트를 req에 추가
 app.use((req, res, next) => {

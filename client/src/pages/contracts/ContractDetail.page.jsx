@@ -1,41 +1,67 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit2, Save, X, Trash2, Calendar, Check, Clock } from 'lucide-react';
+import { ArrowLeft, Save, X, Calendar, Check, Clock, LogOut } from 'lucide-react';
 import Navigation from '../../components/Navigation.component';
 import API from '../../config/api';
 
 export default function ContractDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  // 데이터 상태
   const [contract, setContract] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
   const [editedData, setEditedData] = useState({});
-  const [saving, setSaving] = useState(false);
   const [schedules, setSchedules] = useState([]);
+  const [contractTypes, setContractTypes] = useState([]);
+
+  // 로딩 및 처리 상태
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [loadingSchedules, setLoadingSchedules] = useState(false);
 
   useEffect(() => {
+    loadContractTypes();
     if (id) {
       loadContract();
       loadSchedules();
     }
   }, [id]);
 
+  // 수익금이나 기타지원금이 변경되면 월지급액 자동 계산
+  useEffect(() => {
+    if (editedData.monthly_payment !== undefined || editedData.other_support !== undefined) {
+      const monthly = Number(editedData.monthly_payment || 0);
+      const support = Number(editedData.other_support || 0);
+      const total = monthly + support;
+
+      setEditedData(prev => ({
+        ...prev,
+        total_monthly_payment: total
+      }));
+    }
+  }, [editedData.monthly_payment, editedData.other_support]);
+
+  const loadContractTypes = async () => {
+    try {
+      const response = await fetch(`${API.CONTRACT_TYPES}`);
+      if (!response.ok) throw new Error('계약 종류 조회 실패');
+      const data = await response.json();
+      console.log('📋 Loaded contract types:', data.types);
+      setContractTypes(data.types || []);
+    } catch (error) {
+      console.error('계약 종류 조회 오류:', error);
+    }
+  };
+
   const loadSchedules = async () => {
     if (!id) return;
-    
+
     setLoadingSchedules(true);
     try {
       const response = await fetch(`${API.PAYMENTS}/schedule/${id}`);
-      
-      if (!response.ok) {
-        throw new Error('스케줄 조회 실패');
-      }
-
+      if (!response.ok) throw new Error('스케줄 조회 실패');
       const data = await response.json();
       setSchedules(data.schedules || []);
-
     } catch (error) {
       console.error('스케줄 조회 오류:', error);
     } finally {
@@ -47,12 +73,10 @@ export default function ContractDetailPage() {
     setLoading(true);
     try {
       const response = await fetch(`${API.CONTRACTS}/${id}`);
-      
-      if (!response.ok) {
-        throw new Error('조회 실패');
-      }
-
+      if (!response.ok) throw new Error('조회 실패');
       const data = await response.json();
+
+      // 데이터 로드 후 editedData 초기화
       setContract(data.contract);
       setEditedData(data.contract);
 
@@ -65,65 +89,65 @@ export default function ContractDetailPage() {
     }
   };
 
-  const handleEdit = () => {
-    setEditing(true);
-  };
-
-  const handleCancel = () => {
-    setEditedData(contract);
-    setEditing(false);
+  // 나가기 버튼: 목록으로 이동
+  const handleExit = () => {
+    if (window.confirm('작성 중인 내용이 저장되지 않습니다. 목록으로 돌아가시겠습니까?')) {
+      navigate('/contracts');
+    }
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
+      // 저장할 데이터 명시적 선택 (불필요한 관계 데이터 제거)
+      const dataToSave = {
+        contract_type_id: editedData.contract_type_id || contract.contract_type_id,
+        contractor_name: editedData.contractor_name,
+        phone_number: editedData.phone_number,
+        email: editedData.email,
+        address: editedData.address,
+        contract_date: editedData.contract_date,
+        amount: Number(editedData.amount || 0),
+        monthly_payment: Number(editedData.monthly_payment || 0),
+        other_support: Number(editedData.other_support || 0),
+        total_monthly_payment: Number(editedData.total_monthly_payment || 0),
+        recipient_name: editedData.recipient_name,
+        recipient_bank: editedData.recipient_bank,
+        recipient_account: editedData.recipient_account,
+        memo: editedData.memo
+      };
+
+      console.log('💾 저장할 데이터:', dataToSave);
+
       const response = await fetch(`${API.CONTRACTS}/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(editedData)
+        body: JSON.stringify(dataToSave)
       });
 
       if (!response.ok) {
-        throw new Error('저장 실패');
+        const errorData = await response.json();
+        throw new Error(errorData.error || '저장 실패');
       }
 
+      const result = await response.json();
+      console.log('✅ 저장 성공:', result);
+
       alert('저장되었습니다.');
-      setContract(editedData);
-      setEditing(false);
+      navigate('/contracts'); // 저장 후 목록으로 이동
 
     } catch (error) {
       console.error('저장 오류:', error);
-      alert('저장에 실패했습니다.');
+      alert(`저장에 실패했습니다: ${error.message}`);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm('정말 삭제하시겠습니까?')) return;
-
-    try {
-      const response = await fetch(`${API.CONTRACTS}/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        throw new Error('삭제 실패');
-      }
-
-      alert('삭제되었습니다');
-      navigate('/contracts');
-
-    } catch (error) {
-      console.error('삭제 오류:', error);
-      alert('삭제에 실패했습니다.');
-    }
-  };
-
   const formatCurrency = (amount) => {
-    if (!amount) return '-';
+    if (!amount && amount !== 0) return '-';
     return new Intl.NumberFormat('ko-KR').format(amount) + '원';
   };
 
@@ -136,8 +160,8 @@ export default function ContractDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 rounded-full animate-spin mb-4" 
-               style={{ borderColor: '#249689', borderTopColor: 'transparent' }}>
+          <div className="inline-block w-12 h-12 border-4 rounded-full animate-spin mb-4"
+            style={{ borderColor: '#249689', borderTopColor: 'transparent' }}>
           </div>
           <p style={{ color: '#6b7280', fontSize: '15px' }}>로딩 중..</p>
         </div>
@@ -151,10 +175,8 @@ export default function ContractDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 네비게이션 */}
       <Navigation />
 
-      {/* 메인 컨텐츠 */}
       <div className="max-w-4xl mx-auto p-6">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* 헤더 */}
@@ -169,51 +191,28 @@ export default function ContractDetailPage() {
                 </p>
               </div>
               <div className="flex gap-2">
-                {!editing ? (
-                  <>
-                    <button
-                      onClick={handleEdit}
-                      className="flex items-center gap-2 px-4 py-2 bg-white font-bold rounded-lg hover:opacity-90 transition-opacity"
-                      style={{ color: '#249689', fontSize: '15px' }}
-                    >
-                      <Edit2 size={18} />
-                      수정
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
-                      style={{ fontSize: '15px' }}
-                    >
-                      <Trash2 size={18} />
-                      삭제
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 bg-white font-bold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                      style={{ color: '#249689', fontSize: '15px' }}
-                    >
-                      <Save size={18} />
-                      {saving ? '저장중..' : '저장'}
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
-                      style={{ fontSize: '15px' }}
-                    >
-                      <X size={18} />
-                      취소
-                    </button>
-                  </>
-                )}
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 bg-white font-bold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                  style={{ color: '#249689', fontSize: '15px' }}
+                >
+                  <Save size={18} />
+                  {saving ? '저장중..' : '저장'}
+                </button>
+                <button
+                  onClick={handleExit}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ fontSize: '15px' }}
+                >
+                  <LogOut size={18} />
+                  나가기
+                </button>
               </div>
             </div>
           </div>
 
-          {/* 상세 정보 */}
+          {/* 상세 정보 입력 폼 */}
           <div className="p-6 space-y-6">
             {/* 기본 정보 */}
             <div>
@@ -221,38 +220,35 @@ export default function ContractDetailPage() {
                 기본 정보
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InfoField
-                  label="계약명"
-                  value={editing ? editedData.contract_name : contract.contract_name}
-                  editing={editing}
-                  onChange={(v) => setEditedData({ ...editedData, contract_name: v })}
+                <ContractTypeField
+                  label="계약종류"
+                  value={editedData.contract_type_id}
+                  contractTypes={contractTypes}
+                  onChange={(v) => setEditedData({ ...editedData, contract_type_id: v })}
+                  required
                 />
                 <InfoField
                   label="계약자명"
-                  value={editing ? editedData.contractor_name : contract.contractor_name}
-                  editing={editing}
+                  value={editedData.contractor_name}
                   onChange={(v) => setEditedData({ ...editedData, contractor_name: v })}
                   required
                 />
                 <InfoField
                   label="전화번호"
-                  value={editing ? editedData.phone_number : contract.phone_number}
-                  editing={editing}
+                  value={editedData.phone_number}
                   onChange={(v) => setEditedData({ ...editedData, phone_number: v })}
                   required
                 />
                 <InfoField
                   label="이메일"
-                  value={editing ? editedData.email : contract.email}
-                  editing={editing}
+                  value={editedData.email}
                   onChange={(v) => setEditedData({ ...editedData, email: v })}
                 />
               </div>
               <div className="mt-4">
                 <InfoField
                   label="주소"
-                  value={editing ? editedData.address : contract.address}
-                  editing={editing}
+                  value={editedData.address}
                   onChange={(v) => setEditedData({ ...editedData, address: v })}
                 />
               </div>
@@ -266,55 +262,57 @@ export default function ContractDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <InfoField
                   label="계약일"
-                  value={editing ? editedData.contract_date : contract.contract_date}
-                  editing={editing}
+                  value={editedData.contract_date}
                   type="date"
                   onChange={(v) => setEditedData({ ...editedData, contract_date: v })}
                   required
                 />
-                <InfoField
+                <CurrencyField
                   label="투자금액"
-                  value={editing ? editedData.amount : formatCurrency(contract.amount)}
-                  editing={editing}
-                  type={editing ? 'number' : 'text'}
+                  value={editedData.amount}
                   onChange={(v) => setEditedData({ ...editedData, amount: v })}
                   required
                 />
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <CurrencyField
+                  label="수익금"
+                  value={editedData.monthly_payment}
+                  onChange={(v) => setEditedData({ ...editedData, monthly_payment: v })}
+                />
+                <CurrencyField
+                  label="기타지원금"
+                  value={editedData.other_support}
+                  onChange={(v) => setEditedData({ ...editedData, other_support: v })}
+                />
+                <CurrencyField
+                  label="월지급액"
+                  value={editedData.total_monthly_payment}
+                  onChange={(v) => setEditedData({ ...editedData, total_monthly_payment: v })}
+                />
+              </div>
             </div>
 
-            {/* 결제 정보 */}
+            {/* 수령자 정보 */}
             <div>
               <h3 className="font-bold mb-4 pb-2 border-b" style={{ color: '#000000', fontSize: '18px' }}>
-                결제 정보
+                수령자 정보
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <InfoField
-                  label="결제 방법"
-                  value={editing ? editedData.payment_method : contract.payment_method}
-                  editing={editing}
-                  onChange={(v) => setEditedData({ ...editedData, payment_method: v })}
+                  label="예금주명"
+                  value={editedData.recipient_name}
+                  onChange={(v) => setEditedData({ ...editedData, recipient_name: v })}
                 />
                 <InfoField
-                  label="금융기관"
-                  value={editing ? editedData.bank_name : contract.bank_name}
-                  editing={editing}
-                  onChange={(v) => setEditedData({ ...editedData, bank_name: v })}
+                  label="은행명"
+                  value={editedData.recipient_bank}
+                  onChange={(v) => setEditedData({ ...editedData, recipient_bank: v })}
                 />
                 <InfoField
                   label="계좌번호"
-                  value={editing ? editedData.account_number : contract.account_number}
-                  editing={editing}
-                  onChange={(v) => setEditedData({ ...editedData, account_number: v })}
-                />
-              </div>
-              <div className="mt-4">
-                <InfoField
-                  label="최초 지급일"
-                  value={editing ? editedData.first_payment_date : contract.first_payment_date}
-                  editing={editing}
-                  type="date"
-                  onChange={(v) => setEditedData({ ...editedData, first_payment_date: v })}
+                  value={editedData.recipient_account}
+                  onChange={(v) => setEditedData({ ...editedData, recipient_account: v })}
                 />
               </div>
             </div>
@@ -326,8 +324,7 @@ export default function ContractDetailPage() {
               </h3>
               <InfoField
                 label=""
-                value={editing ? editedData.memo : contract.memo}
-                editing={editing}
+                value={editedData.memo}
                 multiline
                 onChange={(v) => setEditedData({ ...editedData, memo: v })}
               />
@@ -344,8 +341,8 @@ export default function ContractDetailPage() {
             </h2>
             {schedules.length > 0 && (
               <div className="text-sm" style={{ color: '#6b7280' }}>
-                총 {schedules.length}건 / 
-                완료 {schedules.filter(s => s.payment_status === 'paid').length}건 / 
+                총 {schedules.length}건 /
+                완료 {schedules.filter(s => s.payment_status === 'paid').length}건 /
                 대기 {schedules.filter(s => s.payment_status === 'pending').length}건
               </div>
             )}
@@ -354,8 +351,8 @@ export default function ContractDetailPage() {
           <div className="p-6">
             {loadingSchedules ? (
               <div className="text-center py-8">
-                <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin" 
-                     style={{ borderColor: '#249689', borderTopColor: 'transparent' }}></div>
+                <div className="inline-block w-8 h-8 border-4 rounded-full animate-spin"
+                  style={{ borderColor: '#249689', borderTopColor: 'transparent' }}></div>
               </div>
             ) : schedules.length === 0 ? (
               <div className="text-center py-8">
@@ -369,21 +366,21 @@ export default function ContractDetailPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {schedules.map((schedule, index) => (
-                  <div 
+                {schedules.map((schedule) => (
+                  <div
                     key={schedule.id}
                     className="flex items-center justify-between p-4 rounded-lg border"
-                    style={{ 
+                    style={{
                       backgroundColor: schedule.payment_status === 'paid' ? '#f0fdf4' : '#ffffff',
                       borderColor: schedule.payment_status === 'paid' ? '#249689' : '#e5e7eb'
                     }}
                   >
                     <div className="flex items-center gap-4">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full font-bold"
-                           style={{ 
-                             backgroundColor: schedule.payment_status === 'paid' ? '#249689' : '#f3f4f6',
-                             color: schedule.payment_status === 'paid' ? '#ffffff' : '#6b7280'
-                           }}>
+                        style={{
+                          backgroundColor: schedule.payment_status === 'paid' ? '#249689' : '#f3f4f6',
+                          color: schedule.payment_status === 'paid' ? '#ffffff' : '#6b7280'
+                        }}>
                         {schedule.payment_number}
                       </div>
                       <div>
@@ -391,20 +388,12 @@ export default function ContractDetailPage() {
                           <span className="font-bold" style={{ color: '#000000', fontSize: '15px' }}>
                             {schedule.scheduled_date}
                           </span>
-                          {schedule.payment_status === 'paid' && (
-                            <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-bold text-white rounded"
-                                  style={{ backgroundColor: '#249689' }}>
-                              <Check size={12} />
-                              완료
-                            </span>
-                          )}
-                          {schedule.payment_status === 'pending' && (
-                            <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded"
-                                  style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                              <Clock size={12} />
-                              대기
-                            </span>
-                          )}
+                          {/* 항상 완료로 표시 */}
+                          <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-bold text-white rounded"
+                            style={{ backgroundColor: '#249689' }}>
+                            <Check size={12} />
+                            완료
+                          </span>
                         </div>
                         <div style={{ color: '#6b7280', fontSize: '14px' }}>
                           {schedule.recipient_name} | {schedule.recipient_bank} {schedule.recipient_account}
@@ -432,28 +421,8 @@ export default function ContractDetailPage() {
   );
 }
 
-// 정보 필드 컴포넌트
-function InfoField({ label, value, editing, type = 'text', multiline = false, required = false, onChange }) {
-  if (!editing) {
-    return (
-      <div>
-        {label && (
-          <label className="block mb-2 font-bold" style={{ color: '#6b7280', fontSize: '15px' }}>
-            {label}
-            {required && <span style={{ color: '#ef4444' }} className="ml-1">*</span>}
-          </label>
-        )}
-        <div className="px-4 py-3 bg-gray-50 rounded-lg" style={{ fontSize: '15px', color: '#000000' }}>
-          {multiline ? (
-            <div className="whitespace-pre-wrap">{value || '-'}</div>
-          ) : (
-            value || '-'
-          )}
-        </div>
-      </div>
-    );
-  }
-
+// 일반 입력 필드
+function InfoField({ label, value, type = 'text', multiline = false, required = false, onChange }) {
   return (
     <div>
       {label && (
@@ -479,6 +448,80 @@ function InfoField({ label, value, editing, type = 'text', multiline = false, re
           style={{ borderRadius: '10px', fontSize: '15px', outline: 'none', borderColor: '#249689' }}
         />
       )}
+    </div>
+  );
+}
+
+// 금액 입력 필드 (자동 콤마 + "원" 표시)
+function CurrencyField({ label, value, required = false, onChange }) {
+  const formatNumber = (num) => {
+    if (!num && num !== 0) return '';
+    return new Intl.NumberFormat('ko-KR').format(num);
+  };
+
+  const handleChange = (e) => {
+    const rawValue = e.target.value.replace(/,/g, '');
+    if (rawValue === '') {
+      onChange('');
+      return;
+    }
+    if (!isNaN(rawValue)) {
+      onChange(Number(rawValue));
+    }
+  };
+
+  return (
+    <div>
+      {label && (
+        <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
+          {label}
+          {required && <span style={{ color: '#ef4444' }} className="ml-1">*</span>}
+        </label>
+      )}
+      <div className="relative">
+        <input
+          type="text"
+          value={formatNumber(value)}
+          onChange={handleChange}
+          className="w-full px-4 py-3 border border-gray-300 focus:border-transparent pr-10" // pr-10으로 오른쪽 여백 확보
+          style={{ borderRadius: '10px', fontSize: '15px', outline: 'none', borderColor: '#249689' }}
+          placeholder="0"
+        />
+        <span className="absolute right-4 top-1/2 transform -translate-y-1/2 font-bold" style={{ color: '#6b7280' }}>
+          원
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// 계약 종류 드롭다운
+function ContractTypeField({ label, value, contractTypes, required = false, onChange }) {
+  return (
+    <div>
+      {label && (
+        <label className="block mb-2 font-bold" style={{ color: '#000000', fontSize: '15px' }}>
+          {label}
+          {required && <span style={{ color: '#ef4444' }} className="ml-1">*</span>}
+        </label>
+      )}
+      <select
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-4 py-3 border border-gray-300 focus:border-transparent"
+        style={{ borderRadius: '10px', fontSize: '15px', outline: 'none', borderColor: '#249689' }}
+      >
+        <option value="">계약 종류를 선택하세요</option>
+        {contractTypes && contractTypes.length > 0 ? (
+          contractTypes.map((type) => (
+            <option key={type.id} value={type.id}>
+              {type.name}
+            </option>
+          ))
+        ) : (
+          <option disabled>계약 종류 로딩 중...</option>
+        )}
+      </select>
     </div>
   );
 }

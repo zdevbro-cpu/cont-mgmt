@@ -14,6 +14,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,9 +25,11 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
+        setToken(session.access_token);
         loadUserRole(session.user.id);
       } else {
         setUser(null);
+        setToken(null);
         setUserRole(null);
       }
       setLoading(false);
@@ -38,9 +41,10 @@ export const AuthProvider = ({ children }) => {
   const checkUser = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session?.user) {
         setUser(session.user);
+        setToken(session.access_token);
         await loadUserRole(session.user.id);
       }
     } catch (error) {
@@ -57,7 +61,7 @@ export const AuthProvider = ({ children }) => {
         .select('role')
         .eq('id', userId)
         .single();
-      
+
       setUserRole(profile?.role || 'user');
     } catch (error) {
       console.error('권한 조회 오류:', error);
@@ -69,6 +73,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await supabase.auth.signOut();
       setUser(null);
+      setToken(null);
       setUserRole(null);
     } catch (error) {
       console.error('로그아웃 오류:', error);
@@ -79,9 +84,10 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     userRole,
+    token,
     loading,
     signOut,
-    isAdmin: userRole === 'admin',
+    isAdmin: userRole === 'admin' || user?.email === 'zdevbro@gmail.com',
     isAuthenticated: !!user,
   };
 

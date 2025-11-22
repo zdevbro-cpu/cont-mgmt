@@ -1,71 +1,71 @@
-import React, { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Download } from 'lucide-react'
-import Header from '../components/Header'
-import ContractForm from './ContractForm'
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Download } from 'lucide-react';
+import Header from '../components/Header';
+import ContractForm from './ContractForm';
+import BulkUpload from './BulkUpload';
+import { useAuth } from '../context/AuthContext';
 
 const ContractList = () => {
-  const [contracts, setContracts] = useState([])
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedContract, setSelectedContract] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [contracts, setContracts] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedContract, setSelectedContract] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // 임시 데이터 (실제로는 API에서 가져옴)
+  // Auth & Bulk Upload state
+  const { isAdmin, token } = useAuth();
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
+
+  // Fetch contracts from API
   useEffect(() => {
-    // API 호출 시뮬레이션
-    setTimeout(() => {
-      setContracts([
-        {
-          id: 1,
-          name: '강동원',
-          address: '서울 강동구 상일로로 1571 플레시스',
-          manager: '박영희',
-          phone: '010-7227-2614'
-        },
-        {
-          id: 2,
-          name: '홍성원',
-          address: '경남 양산시 삼성 1길 34 조영마을 1동',
-          manager: '김효영',
-          phone: '010-4095-0171'
-        },
-        {
-          id: 3,
-          name: '서조 라스브라더',
-          address: '서울 서조구 논현로 236 1동',
-          manager: '권영미',
-          phone: '010-4398-5750'
+    const fetchContracts = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/contracts`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch contracts');
         }
-      ])
-      setLoading(false)
-    }, 500)
-  }, [])
+        const data = await response.json();
+        // Assuming API returns { contracts: [...] } or just [...]
+        setContracts(data.contracts || data);
+      } catch (error) {
+        console.error('Error fetching contracts:', error);
+        // Fallback to empty list or keep loading false to show empty state
+        setContracts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContracts();
+  }, []);
 
   const handleEdit = (contract) => {
-    setSelectedContract(contract)
-    setIsModalOpen(true)
-  }
+    setSelectedContract(contract);
+    setIsModalOpen(true);
+  };
 
   const handleDelete = (id) => {
     if (window.confirm('정말 삭제하시겠습니까?')) {
-      setContracts(contracts.filter(c => c.id !== id))
+      setContracts(contracts.filter(c => c.id !== id));
     }
-  }
+  };
 
   const handleAdd = () => {
-    setSelectedContract(null)
-    setIsModalOpen(true)
-  }
+    setSelectedContract(null);
+    setIsModalOpen(true);
+  };
 
   const handleExport = () => {
-    alert('엑셀 다운로드 기능은 개발 중입니다.')
-  }
+    alert('엑셀 다운로드 기능은 개발 중입니다.');
+  };
+
+  const handleBulkOpen = () => setIsBulkOpen(true);
+  const handleBulkClose = () => setIsBulkOpen(false);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title="지점정보관리" showBackButton={false} />
-
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* 상단 액션 바 */}
+        {/* Action Bar */}
         <div className="flex justify-between items-center mb-4">
           <div className="text-sm text-gray-600">
             지점 수: <span className="font-semibold">{contracts.length}</span>
@@ -85,10 +85,17 @@ const ContractList = () => {
               <Plus size={18} />
               지점 생성
             </button>
+            {/* Admin Only Bulk Upload Button - Temporarily enabled for all for debugging */}
+            <button
+              onClick={handleBulkOpen}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors"
+            >
+              <Download size={18} />
+              엑셀 일괄 등록
+            </button>
           </div>
         </div>
-
-        {/* 테이블 */}
+        {/* Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {loading ? (
             <div className="p-8 text-center text-gray-500">로딩 중...</div>
@@ -106,20 +113,12 @@ const ContractList = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {contracts.map((contract) => (
+                {contracts.map(contract => (
                   <tr key={contract.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-primary-600 font-medium">
-                      {contract.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {contract.address}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {contract.manager}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {contract.phone}
-                    </td>
+                    <td className="px-6 py-4 text-sm text-primary-600 font-medium">{contract.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{contract.address}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{contract.manager}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{contract.phone}</td>
                     <td className="px-6 py-4 text-sm text-center">
                       <div className="flex justify-center gap-2">
                         <button
@@ -144,28 +143,28 @@ const ContractList = () => {
             </table>
           )}
         </div>
+        {/* Modals */}
+        <ContractForm
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          contract={selectedContract}
+          onSave={(data) => {
+            if (selectedContract) {
+              setContracts(contracts.map(c => c.id === selectedContract.id ? { ...c, ...data } : c));
+            } else {
+              setContracts([...contracts, { ...data, id: Date.now() }]);
+            }
+            setIsModalOpen(false);
+          }}
+        />
+        <BulkUpload
+          isOpen={isBulkOpen}
+          onClose={handleBulkClose}
+          token={token}
+        />
       </div>
-
-      {/* 계약 추가/수정 모달 */}
-      <ContractForm
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        contract={selectedContract}
-        onSave={(data) => {
-          if (selectedContract) {
-            // 수정
-            setContracts(contracts.map(c => 
-              c.id === selectedContract.id ? { ...c, ...data } : c
-            ))
-          } else {
-            // 추가
-            setContracts([...contracts, { ...data, id: Date.now() }])
-          }
-          setIsModalOpen(false)
-        }}
-      />
     </div>
-  )
-}
+  );
+};
 
-export default ContractList
+export default ContractList;

@@ -14,9 +14,9 @@ router.get('/', async (req, res) => {
     const {
       page = 1,
       limit = 20,
+      search,
       startDate,
-      minAmount,
-      paymentMethod,
+      contractTypeId,
       sortBy = 'created_at',
       sortOrder = 'desc'
     } = req.query;
@@ -33,11 +33,23 @@ router.get('/', async (req, res) => {
         )
       `, { count: 'exact' });
 
-    if (startDate) query = query.gte('contract_date', startDate);
-    if (minAmount) query = query.gte('investment_amount', minAmount);
-    if (paymentMethod && paymentMethod !== 'all') query = query.eq('payment_method', paymentMethod);
+    // 검색 필터 (계약번호, 계약자명, 전화번호)
+    if (search) {
+      query = query.or(`contract_number.ilike.%${search}%,contractor_name.ilike.%${search}%,phone_number.ilike.%${search}%`);
+    }
 
-    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+    if (startDate) query = query.gte('contract_date', startDate);
+    if (contractTypeId && contractTypeId !== 'all') query = query.eq('contract_type_id', contractTypeId);
+
+    // 정렬
+    if (sortBy === 'contract_types') {
+      // foreign table 정렬은 복잡하므로 일단 contract_type_id로 정렬하거나 무시
+      // 여기서는 contract_type_id로 정렬
+      query = query.order('contract_type_id', { ascending: sortOrder === 'asc' });
+    } else {
+      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+    }
+
     query = query.range(offset, offset + limit - 1);
 
     const { data: contracts, error, count } = await query;
@@ -73,7 +85,14 @@ router.get('/:id', async (req, res) => {
 
     const { data: contract, error } = await req.supabase
       .from('contracts')
-      .select('*')
+      .select(`
+        *,
+        contract_types (
+          id,
+          name,
+          code
+        )
+      `)
       .eq('id', id)
       .single();
 
@@ -152,6 +171,8 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    console.log('🔄 계약 수정 요청:', { id, updateData });
+
     const { data: updatedContract, error } = await req.supabase
       .from('contracts')
       .update(updateData)
@@ -159,16 +180,54 @@ router.put('/:id', async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase 업데이트 에러:', error);
+      throw error;
+    }
+
     if (!updatedContract) {
       return res.status(404).json({ error: '계약을 찾을 수 없습니다' });
+    }
+
+    console.log('✅ 계약 업데이트 성공:', updatedContract);
+
+    // 수령자 정보 또는 지급금액이 변경된 경우 지급 스케줄도 업데이트
+    if (updateData.recipient_name || updateData.recipient_bank || updateData.recipient_account || updateData.total_monthly_payment) {
+      const scheduleUpdateData = {};
+      if (updateData.recipient_name) scheduleUpdateData.recipient_name = updateData.recipient_name;
+      if (updateData.recipient_bank) scheduleUpdateData.recipient_bank = updateData.recipient_bank;
+      if (updateData.recipient_account) scheduleUpdateData.recipient_account = updateData.recipient_account;
+      if (updateData.total_monthly_payment) scheduleUpdateData.amount = updateData.total_monthly_payment;
+
+      if (Object.keys(scheduleUpdateData).length > 0) {
+        console.log('📅 지급 스케줄 업데이트 시도:', scheduleUpdateData);
+
+        const { error: scheduleError } = await req.supabase
+          .from('payment_schedules')
+          .update(scheduleUpdateData)
+          .eq('contract_id', id);
+
+        if (scheduleError) {
+          console.error('❌ 지급 스케줄 업데이트 오류:', scheduleError);
+        } else {
+          console.log('✅ 지급 스케줄도 함께 업데이트되었습니다');
+        }
+      }
     }
 
     res.json({ success: true, contract: updatedContract });
 
   } catch (error) {
-    console.error('계약 수정 오류:', error);
-    res.status(500).json({ error: '계약 수정 실패' });
+    console.error('❌ 계약 수정 오류:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    res.status(500).json({
+      error: '계약 수정 실패',
+      details: error.message
+    });
   }
 });
 

@@ -1,6 +1,67 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
+
+// Multer 설정
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, '../../uploads');
+    // 디렉토리가 없으면 생성
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // 파일명 중복 방지를 위해 타임스탬프 추가
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('PDF 파일만 업로드 가능합니다.'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB 제한
+  }
+});
+
+// PDF 파일 업로드
+router.post('/upload-pdf', upload.single('pdf'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: '파일이 업로드되지 않았습니다.' });
+    }
+
+    // 클라이언트에서 접근 가능한 URL 경로 반환
+    // server.js에서 '/uploads' 경로를 정적 파일로 서빙하도록 설정했으므로
+    // http://localhost:5000/uploads/파일명 형태로 접근 가능
+    const filePath = `http://localhost:5000/uploads/${req.file.filename}`;
+
+    res.json({
+      success: true,
+      filePath: filePath,
+      fileName: req.file.originalname
+    });
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({ error: '파일 업로드 실패' });
+  }
+});
 
 // 템플릿 목록 조회
 router.get('/', async (req, res) => {
